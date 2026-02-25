@@ -9,18 +9,24 @@ namespace Readarr.Http.Frontend.Mappers
 {
     public class LoginHtmlMapper : HtmlMapperBase
     {
+        private readonly IAppFolderInfo _appFolderInfo;
+        private readonly IConfigFileProvider _configFileProvider;
+
         public LoginHtmlMapper(IAppFolderInfo appFolderInfo,
                                IDiskProvider diskProvider,
                                Lazy<ICacheBreakerProvider> cacheBreakProviderFactory,
                                IConfigFileProvider configFileProvider,
                                Logger logger)
-            : base(diskProvider, cacheBreakProviderFactory, logger)
+            : base(diskProvider, configFileProvider, cacheBreakProviderFactory, logger)
         {
-            HtmlPath = Path.Combine(appFolderInfo.StartUpFolder, configFileProvider.UiFolder, "login.html");
-            UrlBase = configFileProvider.UrlBase;
+            _appFolderInfo = appFolderInfo;
+            _configFileProvider = configFileProvider;
         }
 
-        public override string Map(string resourceUrl)
+        protected override string FolderPath => Path.Combine(_appFolderInfo.StartUpFolder, _configFileProvider.UiFolder);
+        protected override string HtmlPath => Path.Combine(FolderPath, "login.html");
+
+        protected override string MapPath(string resourceUrl)
         {
             return HtmlPath;
         }
