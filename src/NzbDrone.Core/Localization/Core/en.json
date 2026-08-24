@@ -1031,6 +1031,8 @@
   "TotalSpace": "Total Space",
   "TrackNumber": "Track Number",
   "TrackTitle": "Track Title",
+  "TrustedNetworks": "Trusted Networks",
+  "TrustedNetworksHelpText": "Comma separated list of IP addresses or networks in CIDR notation that trusted reverse proxies are on. e.g. 172.17.0.1, 10.0.0.0/8 or fc00::/7. Only add proxies that are properly configured to send the correct headers.",
   "UILanguage": "UI Language",
   "UILanguageHelpText": "Language that Readarr will use for UI",
   "UILanguageHelpTextWarning": "Browser Reload Required",
