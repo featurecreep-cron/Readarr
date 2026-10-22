@@ -1,0 +1,25 @@
+name: 'Upstream watch'
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * 1'
+
+permissions: {}
+
+jobs:
+  watch:
+    if: github.repository == 'featurecreep-cron/Readarr'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: List new shared-code commits upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/upstream_watch.py --repo "$GITHUB_REPOSITORY"
