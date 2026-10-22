@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Notifications.Mailgun
           Recipients = new string[] { };
       }
 
-      [FieldDefinition(0, Label = "API Key", HelpText = "The API key generated from MailGun")]
+      [FieldDefinition(0, Label = "API Key", HelpText = "The API key generated from MailGun", Privacy = PrivacyLevel.ApiKey)]
       public string ApiKey { get; set; }
 
       [FieldDefinition(1, Label = "Use EU Endpoint?", HelpText = "You can choose to use the EU MailGun endpoint with this", Type = FieldType.Checkbox)]

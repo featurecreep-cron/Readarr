@@ -25,7 +25,7 @@ namespace NzbDrone.Core.ImportLists.LazyLibrarianImport
         [FieldDefinition(0, Label = "Url")]
         public string BaseUrl { get; set; }
 
-        [FieldDefinition(1, Label = "API Key")]
+        [FieldDefinition(1, Label = "API Key", Privacy = PrivacyLevel.ApiKey)]
         public string ApiKey { get; set; }
 
         public NzbDroneValidationResult Validate()

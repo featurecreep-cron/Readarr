@@ -62,6 +62,43 @@ namespace NzbDrone.Api.Test.ClientSchemaTests
             schema.Should().Contain(c => c.Order == 1 && c.Name == "name.lastName" && c.Label == "Last Name" && c.HelpText == "Your Last Name" && c.HelpTextWarning == "Mandatory Last Name" && (string)c.Value == "Poop");
             schema.Should().Contain(c => c.Order == 2 && c.Name == "quote" && c.Label == "Quote" && c.HelpText == "Your Favorite Quote");
         }
+
+        [Test]
+        public void schema_should_not_return_secrets()
+        {
+            var schema = SchemaBuilder.ToSchema(new SecretTestModel { Host = "localhost", Password = "hunter2", ApiKey = "abc123" });
+
+            schema.Should().Contain(c => c.Name == "host" && (string)c.Value == "localhost");
+            schema.Should().Contain(c => c.Name == "password" && (string)c.Value == "********");
+            schema.Should().Contain(c => c.Name == "apiKey" && (string)c.Value == "********");
+        }
+
+        [Test]
+        public void reading_masked_secrets_should_keep_the_stored_values()
+        {
+            var existing = new SecretTestModel { Host = "localhost", Password = "hunter2", ApiKey = "abc123" };
+            var fields = SchemaBuilder.ToSchema(existing);
+            fields.Find(f => f.Name == "host").Value = "example.com";
+
+            var model = (SecretTestModel)SchemaBuilder.ReadFromSchema(fields, typeof(SecretTestModel), existing);
+
+            model.Host.Should().Be("example.com");
+            model.Password.Should().Be("hunter2");
+            model.ApiKey.Should().Be("abc123");
+        }
+
+        [Test]
+        public void reading_changed_secrets_should_use_the_new_values()
+        {
+            var existing = new SecretTestModel { Password = "hunter2", ApiKey = "abc123" };
+            var fields = SchemaBuilder.ToSchema(existing);
+            fields.Find(f => f.Name == "password").Value = "correct horse";
+
+            var model = (SecretTestModel)SchemaBuilder.ReadFromSchema(fields, typeof(SecretTestModel), existing);
+
+            model.Password.Should().Be("correct horse");
+            model.ApiKey.Should().Be("abc123");
+        }
     }
 
     public class TestModel
@@ -82,5 +119,17 @@ namespace NzbDrone.Api.Test.ClientSchemaTests
 
         [FieldDefinition(1, Label = "Quote", HelpText = "Your Favorite Quote")]
         public string Quote { get; set; }
+    }
+
+    public class SecretTestModel
+    {
+        [FieldDefinition(0, Label = "Host")]
+        public string Host { get; set; }
+
+        [FieldDefinition(1, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
+        public string Password { get; set; }
+
+        [FieldDefinition(2, Label = "API Key", Privacy = PrivacyLevel.ApiKey)]
+        public string ApiKey { get; set; }
     }
 }

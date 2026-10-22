@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Notifications.Subsonic
         [FieldDefinition(3, Label = "Username")]
         public string Username { get; set; }
 
-        [FieldDefinition(4, Label = "Password", Type = FieldType.Password)]
+        [FieldDefinition(4, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
         [FieldDefinition(5, Label = "Notify with Chat Message", Type = FieldType.Checkbox)]

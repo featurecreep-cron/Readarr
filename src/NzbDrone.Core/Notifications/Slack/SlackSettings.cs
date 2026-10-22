@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Notifications.Slack
     {
         private static readonly SlackSettingsValidator Validator = new SlackSettingsValidator();
 
-        [FieldDefinition(0, Label = "Webhook URL", HelpText = "Slack channel webhook url", Type = FieldType.Url, HelpLink = "https://my.slack.com/services/new/incoming-webhook/")]
+        [FieldDefinition(0, Label = "Webhook URL", HelpText = "Slack channel webhook url", Type = FieldType.Url, HelpLink = "https://my.slack.com/services/new/incoming-webhook/", Privacy = PrivacyLevel.ApiKey)]
         public string WebHookUrl { get; set; }
 
         [FieldDefinition(1, Label = "Username", Privacy = PrivacyLevel.UserName, HelpText = "Choose the username that this integration will post as", Type = FieldType.Textbox)]

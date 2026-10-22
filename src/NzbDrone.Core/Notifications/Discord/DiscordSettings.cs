@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Notifications.Discord
     {
         private static readonly DiscordSettingsValidator Validator = new DiscordSettingsValidator();
 
-        [FieldDefinition(0, Label = "Webhook URL", HelpText = "Discord channel webhook url")]
+        [FieldDefinition(0, Label = "Webhook URL", HelpText = "Discord channel webhook url", Privacy = PrivacyLevel.ApiKey)]
         public string WebHookUrl { get; set; }
 
         [FieldDefinition(1, Label = "Username", Privacy = PrivacyLevel.UserName, HelpText = "The username to post as, defaults to Discord webhook default")]
