@@ -33,6 +33,14 @@ runs:
       with:
         global-json-file: global.json
 
+    # FreeBSD runtime packs for .NET 10 are published by openur on GitHub Packages, which needs a token even to read.
+    - name: Setup NuGet registry source
+      shell: bash
+      if: ${{ startsWith(inputs.runtime, 'freebsd') }}
+      run: |
+        dotnet nuget add source --configfile src/NuGet.config --name gh-openur https://nuget.pkg.github.com/openur/index.json --username ${{ github.repository_owner }} --password ${{ github.token }} --store-password-in-clear-text
+        sed -i 's#</packageSourceMapping>#  <packageSource key="gh-openur">\n    <package pattern="Microsoft.NETCore.App.Runtime.freebsd-*" />\n    <package pattern="Microsoft.AspNetCore.App.Runtime.freebsd-*" />\n    <package pattern="Microsoft.NETCore.App.Host.freebsd-*" />\n  </packageSource>\n</packageSourceMapping>#' src/NuGet.config
+
     - name: Setup Environment Variables
       id: variables
       shell: bash
