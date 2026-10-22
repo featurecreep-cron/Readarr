@@ -1,12 +1,75 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for more information:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-# https://containers.dev/guide/dependabot
-
 version: 2
 updates:
- - package-ecosystem: "devcontainers"
-   directory: "/"
-   schedule:
-     interval: weekly
+  # Commit messages are Dependabot's default ("Bump X from a to b"), which is
+  # also Servarr's style. next_version.py doesn't read them: it releases a patch
+  # when a commit changes a package that a non-test project references, a
+  # package.json "dependencies" entry or the SDK, and nothing for test or
+  # tooling packages. The *-dev groups keep those tooling bumps out of the way
+  # of the ones users get.
+  - package-ecosystem: nuget
+    directory: /src
+    schedule:
+      interval: weekly
+    cooldown:
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      nuget-dev:
+        patterns:
+          - "AutoFixture"
+          - "coverlet.collector"
+          - "FluentAssertions"
+          - "GitHubActionsTestLogger"
+          - "Microsoft.NET.Test.Sdk"
+          - "Moq"
+          - "NBuilder"
+          - "NUnit*"
+          - "NunitXml.TestLogger"
+          - "Selenium.*"
+          - "StyleCop.Analyzers*"
+          - "System.IO.Abstractions.TestingHelpers"
+      nuget-patches:
+        update-types: ["patch"]
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      npm-dev:
+        dependency-type: development
+      npm-patches:
+        dependency-type: production
+        update-types: ["patch"]
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      # Workflow changes never reach users.
+      actions-dev:
+        patterns: ["*"]
+    labels:
+      - dependencies
+
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      devcontainers-dev:
+        patterns: ["*"]
