@@ -95,7 +95,7 @@ There are also two continuous tracks: **upstream watch** and **issue triage** (s
 - [x] **Branches:**
   - `develop` is the default branch.
   - `main` is the release branch, promoted from `develop` by the release workflow.
-  - [ ] Protection requires the `Build` and `Contribution rules` checks.
+  - [x] Protection requires the `Build` and `Contribution rules` checks.
 - [x] **Tag `v0.4.19`** on upstream's last commit, so version numbering continues from there.
 - [ ] **Install the bot app and the promoter app** on the repo and add their secrets. Owner action.
 - [x] **Delete the local `foundation` branch.** It is cherry-picks of smilerz commits and is replaced by `modernize`.
@@ -120,7 +120,7 @@ Done locally on the `modernize` branch, not pushed yet.
 - [x] Port Sonarr's .NET 8 changes for serialization constructors and the auth handlers (S `6b9262700`).
 - [x] Packages at the versions Sonarr uses: MailKit 4.18.1, ImageSharp 3.1.12 with decoders restricted (S `b59552cfe`), Microsoft.Extensions 10.0.13. Pinned Pkcs, Drawing.Common and JWT.
 - [x] macOS appdata migration for .NET 8+ (L `1a4c1b6db`), renamed for Readarr.
-- [ ] **Explicit body binding on write actions.** On .NET 7+, every POST and PUT body binds as an empty object. Readarr registers every API resource type in its DI container, so ASP.NET treats those parameters as `[FromServices]`.
+- [x] **Explicit body binding on write actions.** On .NET 7+, every POST and PUT body binds as an empty object. Readarr registers every API resource type in its DI container, so ASP.NET treats those parameters as `[FromServices]`.
   - Port Lidarr `826b8b593` (S `7166a6c01`), which adds `[FromBody]` everywhere.
   - Add `DisableImplicitFromServicesParameters` as a backstop.
   - Add a regression test that POSTs a real command and saves a setting, and checks both arrive. A reflection test over all actions must keep a visited set: `ProviderBulkResource<T>` constrains its type parameter to itself.
@@ -136,7 +136,7 @@ Done locally on the `modernize` branch, not pushed yet.
 
 Mostly done locally.
 
-- [x] GitHub Actions build ported from Sonarr: 10 runtimes; unit tests on Linux, macOS and Windows; Postgres 16, 17 and 18; integration tests.
+- [x] GitHub Actions build ported from Sonarr: 10 runtimes; unit tests on Linux, macOS and Windows; Postgres 16, 17 and 18; integration tests. Green on `develop` since 2026-10-22.
 - [x] Contribution rules as checks:
   - commit message style, with no merge or fixup commits
   - no AI attribution lines
