@@ -66,6 +66,41 @@ namespace NzbDrone.Core.Test.MediaFiles
                 .Build();
         }
 
+        private string ExistingPath => Path.Combine(_rootPath, @"Season 01\30.rock.s01e01.avi");
+
+        private string AsidePath => Path.Combine(Path.GetDirectoryName(ExistingPath), ".readarr-upgrade", Path.GetFileName(ExistingPath));
+
+        [Test]
+        public void should_move_the_existing_file_aside_before_placing_the_new_one()
+        {
+            GivenSingleTrackWithSingleTrackFile();
+
+            Mocker.GetMock<IMoveBookFiles>()
+                  .Setup(s => s.MoveBookFile(_trackFile, _localTrack))
+                  .Callback(() => Mocker.GetMock<IDiskProvider>().Verify(v => v.MoveFile(ExistingPath, AsidePath, true), Times.Once()))
+                  .Returns(_trackFile);
+
+            Subject.UpgradeBookFile(_trackFile, _localTrack);
+
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFile(AsidePath, It.IsAny<string>()), Times.Once());
+        }
+
+        [Test]
+        public void should_put_the_existing_file_back_when_placing_the_new_one_fails()
+        {
+            GivenSingleTrackWithSingleTrackFile();
+
+            Mocker.GetMock<IMoveBookFiles>()
+                  .Setup(s => s.MoveBookFile(_trackFile, _localTrack))
+                  .Throws(new IOException("disk full"));
+
+            Assert.Throws<IOException>(() => Subject.UpgradeBookFile(_trackFile, _localTrack));
+
+            Mocker.GetMock<IDiskProvider>().Verify(v => v.MoveFile(AsidePath, ExistingPath, true), Times.Once());
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Delete(It.IsAny<BookFile>(), It.IsAny<DeleteMediaFileReason>()), Times.Never());
+        }
+
         [Test]
         public void should_delete_single_track_file_once()
         {

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -16,6 +19,8 @@ namespace NzbDrone.Core.MediaFiles
 
     public class UpgradeMediaFileService : IUpgradeMediaFiles
     {
+        private const string AsideFolderName = ".readarr-upgrade";
+
         private readonly IRecycleBinProvider _recycleBinProvider;
         private readonly IMediaFileService _mediaFileService;
         private readonly IMetadataTagService _metadataTagService;
@@ -61,49 +66,65 @@ namespace NzbDrone.Core.MediaFiles
                 throw new RootFolderNotFoundException($"Root folder '{rootFolderPath}' was not found.");
             }
 
-            foreach (var file in existingFiles)
+            if (!isCalibre)
             {
-                var bookFilePath = file.Path;
-                var subfolder = rootFolderPath.GetRelativePath(_diskProvider.GetParentFolder(bookFilePath));
+                // The existing files are moved aside rather than deleted, so a failed move or copy can put them back.
+                // They go to the recycle bin only once the new file is in place.
+                var setAside = SetAside(existingFiles);
 
-                bookFile.CalibreId = file.CalibreId;
-
-                if (_diskProvider.FileExists(bookFilePath))
+                try
                 {
-                    _logger.Debug("Removing existing book file: {0} CalibreId: {1}", file, file.CalibreId);
-
-                    if (!isCalibre)
+                    if (copyOnly)
                     {
-                        _recycleBinProvider.DeleteFile(bookFilePath, subfolder);
+                        moveFileResult.BookFile = _bookFileMover.CopyBookFile(bookFile, localBook);
                     }
                     else
+                    {
+                        moveFileResult.BookFile = _bookFileMover.MoveBookFile(bookFile, localBook);
+                    }
+                }
+                catch
+                {
+                    Restore(setAside);
+                    throw;
+                }
+
+                foreach (var file in existingFiles)
+                {
+                    bookFile.CalibreId = file.CalibreId;
+
+                    if (setAside.TryGetValue(file, out var asidePath))
+                    {
+                        _logger.Debug("Removing existing book file: {0}", file);
+                        _recycleBinProvider.DeleteFile(asidePath, rootFolderPath.GetRelativePath(_diskProvider.GetParentFolder(file.Path)));
+                    }
+
+                    moveFileResult.OldFiles.Add(file);
+                    _mediaFileService.Delete(file, DeleteMediaFileReason.Upgrade);
+                }
+
+                DeleteAsideFolders(setAside);
+
+                _metadataTagService.WriteTags(bookFile, true);
+            }
+            else
+            {
+                foreach (var file in existingFiles)
+                {
+                    bookFile.CalibreId = file.CalibreId;
+
+                    if (_diskProvider.FileExists(file.Path))
                     {
                         var existing = _calibre.GetBook(file.CalibreId, settings);
                         var existingFormats = existing.Formats.Keys;
                         _logger.Debug($"Removing existing formats {existingFormats.ConcatToString()} from calibre");
                         _calibre.RemoveFormats(file.CalibreId, existingFormats, settings);
                     }
+
+                    moveFileResult.OldFiles.Add(file);
+                    _mediaFileService.Delete(file, DeleteMediaFileReason.Upgrade);
                 }
 
-                moveFileResult.OldFiles.Add(file);
-                _mediaFileService.Delete(file, DeleteMediaFileReason.Upgrade);
-            }
-
-            if (!isCalibre)
-            {
-                if (copyOnly)
-                {
-                    moveFileResult.BookFile = _bookFileMover.CopyBookFile(bookFile, localBook);
-                }
-                else
-                {
-                    moveFileResult.BookFile = _bookFileMover.MoveBookFile(bookFile, localBook);
-                }
-
-                _metadataTagService.WriteTags(bookFile, true);
-            }
-            else
-            {
                 var source = bookFile.Path;
 
                 moveFileResult.BookFile = _calibre.AddAndConvert(bookFile, settings);
@@ -115,6 +136,59 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             return moveFileResult;
+        }
+
+        private Dictionary<BookFile, string> SetAside(List<BookFile> files)
+        {
+            var setAside = new Dictionary<BookFile, string>();
+
+            try
+            {
+                foreach (var file in files.Where(f => _diskProvider.FileExists(f.Path)))
+                {
+                    var asideFolder = Path.Combine(_diskProvider.GetParentFolder(file.Path), AsideFolderName);
+                    var asidePath = Path.Combine(asideFolder, Path.GetFileName(file.Path));
+
+                    _diskProvider.CreateFolder(asideFolder);
+                    _diskProvider.MoveFile(file.Path, asidePath, true);
+                    setAside.Add(file, asidePath);
+                }
+            }
+            catch
+            {
+                Restore(setAside);
+                throw;
+            }
+
+            return setAside;
+        }
+
+        private void Restore(Dictionary<BookFile, string> setAside)
+        {
+            foreach (var (file, asidePath) in setAside)
+            {
+                try
+                {
+                    _diskProvider.MoveFile(asidePath, file.Path, true);
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e, "Couldn't put {0} back after a failed upgrade; it is at {1}", file.Path, asidePath);
+                }
+            }
+
+            DeleteAsideFolders(setAside);
+        }
+
+        private void DeleteAsideFolders(Dictionary<BookFile, string> setAside)
+        {
+            foreach (var folder in setAside.Values.Select(_diskProvider.GetParentFolder).Distinct())
+            {
+                if (_diskProvider.FolderExists(folder) && _diskProvider.FolderEmpty(folder))
+                {
+                    _diskProvider.DeleteFolder(folder, false);
+                }
+            }
         }
     }
 }
