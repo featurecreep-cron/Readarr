@@ -32,9 +32,12 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         }
 
         [Test]
-        public void should_refuse_a_database_with_a_migration_this_version_does_not_have()
+        public void should_refuse_a_database_whose_migration_has_our_number_but_another_name()
         {
-            GivenAppliedMigration(41, "last_remote_search_time");
+            using (var connection = Db.OpenConnection())
+            {
+                connection.Execute("UPDATE \"VersionInfo\" SET \"Description\" = 'last_remote_search_time' WHERE \"Version\" = 41");
+            }
 
             Assert.Throws<UnknownMigrationException>(Migrate)
                 .Message.Should().Contain("41 last_remote_search_time");

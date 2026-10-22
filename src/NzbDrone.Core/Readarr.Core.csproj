@@ -6,6 +6,7 @@
     <PackageReference Include="Dapper" />
     <PackageReference Include="Diacritical.Net" />
     <PackageReference Include="LazyCache" />
+    <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" />
     <PackageReference Include="Polly" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
