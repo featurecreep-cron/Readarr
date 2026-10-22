@@ -133,8 +133,9 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Identification
             // convert all the TrackFiles that represent extra files to List<LocalTrack>
             // local candidates are actually a list so this is fine to enumerate
             var allLocalTracks = ToLocalTrack(candidateReleases
-                .SelectMany(x => x.ExistingFiles)
-                .DistinctBy(x => x.Path), localBookRelease);
+                    .SelectMany(x => x.ExistingFiles)
+                    .DistinctBy(x => x.Path),
+                localBookRelease);
 
             _logger.Debug($"Retrieved {allLocalTracks.Count} possible tracks in {watch.ElapsedMilliseconds}ms");
 

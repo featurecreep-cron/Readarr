@@ -120,11 +120,15 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
                            {
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure"),
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() },
+                                       new Rejection("Rejected!")),
+                                   "Test Failure"),
 
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure")
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() },
+                                       new Rejection("Rejected!")),
+                                   "Test Failure")
                            });
 
             Subject.Import(_trackedDownload);
@@ -144,11 +148,15 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
                            {
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure"),
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() },
+                                       new Rejection("Rejected!")),
+                                   "Test Failure"),
 
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure")
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() },
+                                       new Rejection("Rejected!")),
+                                   "Test Failure")
                            });
 
             _trackedDownload.RemoteBook.Books.Clear();
@@ -325,7 +333,8 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
 
                     new ImportResult(
                         new ImportDecision<LocalBook>(
-                            new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv", Book = books[1], Author = _author }), "Test Failure")
+                            new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv", Book = books[1], Author = _author }),
+                        "Test Failure")
                 });
 
             var history = Builder<EntityHistory>.CreateListOfSize(2)

@@ -324,9 +324,11 @@ namespace NzbDrone.Core.Test.ImportListTests
             Mocker.GetMock<IAddBookService>()
                 .Verify(v => v.AddBooks(It.Is<List<Book>>(t => t.Count == 2), false));
             Mocker.GetMock<IAddAuthorService>()
-                .Verify(v => v.AddAuthors(It.Is<List<Author>>(t => t.Count == 1 &&
-                                                                   t.First().AddOptions.BooksToMonitor.Count == expectedBooksMonitored &&
-                                                                   t.First().Monitored == expectedAuthorMonitored), false));
+                .Verify(v => v.AddAuthors(
+                    It.Is<List<Author>>(t => t.Count == 1 &&
+                                             t.First().AddOptions.BooksToMonitor.Count == expectedBooksMonitored &&
+                                             t.First().Monitored == expectedAuthorMonitored),
+                    false));
         }
 
         [Test]

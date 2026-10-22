@@ -93,7 +93,8 @@ namespace NzbDrone.Core.Test.MediaFiles.TrackFileMovingServiceTests
 
             Mocker.GetMock<IEventAggregator>()
                   .Verify(s => s.PublishEvent<TrackFolderCreatedEvent>(It.Is<TrackFolderCreatedEvent>(p =>
-                      p.AuthorFolder.IsNotNullOrWhiteSpace())), Times.Once());
+                      p.AuthorFolder.IsNotNullOrWhiteSpace())),
+                  Times.Once());
         }
 
         [Test]
@@ -103,7 +104,8 @@ namespace NzbDrone.Core.Test.MediaFiles.TrackFileMovingServiceTests
 
             Mocker.GetMock<IEventAggregator>()
                   .Verify(s => s.PublishEvent<TrackFolderCreatedEvent>(It.Is<TrackFolderCreatedEvent>(p =>
-                      p.BookFolder.IsNotNullOrWhiteSpace())), Times.Once());
+                      p.BookFolder.IsNotNullOrWhiteSpace())),
+                  Times.Once());
         }
 
         [Test]
@@ -117,7 +119,8 @@ namespace NzbDrone.Core.Test.MediaFiles.TrackFileMovingServiceTests
 
             Mocker.GetMock<IEventAggregator>()
                   .Verify(s => s.PublishEvent<TrackFolderCreatedEvent>(It.Is<TrackFolderCreatedEvent>(p =>
-                      p.AuthorFolder.IsNotNullOrWhiteSpace())), Times.Never());
+                      p.AuthorFolder.IsNotNullOrWhiteSpace())),
+                  Times.Never());
         }
     }
 }

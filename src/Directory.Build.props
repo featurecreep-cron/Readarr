@@ -140,7 +140,7 @@
   <!-- Set up stylecop -->
   <ItemGroup Condition="'$(ReadarrProject)'=='true' and '$(EnableAnalyzers)'!='false'">
     <!-- StyleCop analysis -->
-    <PackageReference Include="StyleCop.Analyzers" >
+    <PackageReference Include="StyleCop.Analyzers.Unstable" >
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
