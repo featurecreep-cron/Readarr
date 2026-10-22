@@ -67,5 +67,22 @@ namespace NzbDrone.Core.Test.AuthenticationTests
 
             Db.Single<User>().Iterations.Should().Be(220000);
         }
+
+        [Test]
+        public void upsert_without_a_password_should_keep_the_existing_one()
+        {
+            Subject.Add("admin", "password");
+
+            Subject.Upsert("renamed", null);
+
+            Subject.FindUser("renamed", "password").Should().NotBeNull();
+        }
+
+        [Test]
+        public void upsert_without_a_password_should_not_create_a_user()
+        {
+            Subject.Upsert("admin", null).Should().BeNull();
+            Subject.FindUser().Should().BeNull();
+        }
     }
 }

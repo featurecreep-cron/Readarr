@@ -20,6 +20,8 @@ namespace Readarr.Api.V1.Config
     [V1ApiController("config/host")]
     public class HostConfigController : RestController<HostConfigResource>
     {
+        private const string PrivateValue = "********";
+
         private readonly IConfigFileProvider _configFileProvider;
         private readonly IConfigService _configService;
         private readonly IUserService _userService;
@@ -63,7 +65,7 @@ namespace Readarr.Api.V1.Config
                 .NotEmpty()
                 .IsValidPath()
                 .SetValidator(fileExistsValidator)
-                .IsValidCertificate()
+                .IsValidCertificate(p => p == PrivateValue ? _configFileProvider.SslCertPassword : p)
                 .When(c => c.EnableSsl);
 
             SharedValidator.RuleFor(c => c.SslKeyPath)
@@ -82,19 +84,12 @@ namespace Readarr.Api.V1.Config
 
         private bool IsMatchingPassword(HostConfigResource resource)
         {
-            var user = _userService.FindUser();
-
-            if (user != null && user.Password == resource.Password)
+            if (resource.Password == PrivateValue)
             {
                 return true;
             }
 
-            if (resource.Password == resource.PasswordConfirmation)
-            {
-                return true;
-            }
-
-            return false;
+            return resource.Password == resource.PasswordConfirmation;
         }
 
         protected override HostConfigResource GetResourceById(int id)
@@ -111,8 +106,12 @@ namespace Readarr.Api.V1.Config
             var user = _userService.FindUser();
 
             resource.Username = user?.Username ?? string.Empty;
-            resource.Password = user?.Password ?? string.Empty;
+            resource.Password = user?.Password.IsNotNullOrWhiteSpace() == true ? PrivateValue : string.Empty;
             resource.PasswordConfirmation = string.Empty;
+
+            // Prevent secrets from being exposed
+            resource.SslCertPassword = resource.SslCertPassword.IsNullOrWhiteSpace() ? string.Empty : PrivateValue;
+            resource.ProxyPassword = resource.ProxyPassword.IsNullOrWhiteSpace() ? string.Empty : PrivateValue;
 
             return resource;
         }
@@ -126,12 +125,22 @@ namespace Readarr.Api.V1.Config
                                      .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                                      .ToDictionary(prop => prop.Name, prop => prop.GetValue(resource, null));
 
+            if (resource.SslCertPassword == PrivateValue)
+            {
+                dictionary["SslCertPassword"] = _configFileProvider.SslCertPassword;
+            }
+
+            if (resource.ProxyPassword == PrivateValue)
+            {
+                dictionary["ProxyPassword"] = _configService.ProxyPassword;
+            }
+
             _configFileProvider.SaveConfigDictionary(dictionary);
             _configService.SaveConfigDictionary(dictionary);
 
             if (resource.Username.IsNotNullOrWhiteSpace() && resource.Password.IsNotNullOrWhiteSpace())
             {
-                _userService.Upsert(resource.Username, resource.Password);
+                _userService.Upsert(resource.Username, resource.Password == PrivateValue ? null : resource.Password);
             }
 
             return Accepted(resource.Id);
