@@ -27,7 +27,6 @@ namespace NzbDrone.Core.HealthCheck
         private readonly IProvideHealthCheck[] _startupHealthChecks;
         private readonly IProvideHealthCheck[] _scheduledHealthChecks;
         private readonly Dictionary<Type, IEventDrivenHealthCheck[]> _eventDrivenHealthChecks;
-        private readonly IServerSideNotificationService _serverSideNotificationService;
         private readonly IEventAggregator _eventAggregator;
         private readonly ICacheManager _cacheManager;
         private readonly Logger _logger;
@@ -38,14 +37,12 @@ namespace NzbDrone.Core.HealthCheck
         private bool _isRunningHealthChecksAfterGracePeriod = false;
 
         public HealthCheckService(IEnumerable<IProvideHealthCheck> healthChecks,
-                                  IServerSideNotificationService serverSideNotificationService,
                                   IEventAggregator eventAggregator,
                                   ICacheManager cacheManager,
                                   IRuntimeInfo runtimeInfo,
                                   Logger logger)
         {
             _healthChecks = healthChecks.ToArray();
-            _serverSideNotificationService = serverSideNotificationService;
             _eventAggregator = eventAggregator;
             _cacheManager = cacheManager;
             _logger = logger;
@@ -77,7 +74,7 @@ namespace NzbDrone.Core.HealthCheck
                 .ToDictionary(g => g.Key, g => g.ToArray());
         }
 
-        private void PerformHealthCheck(IProvideHealthCheck[] healthChecks, IEvent message = null, bool performServerChecks = false)
+        private void PerformHealthCheck(IProvideHealthCheck[] healthChecks, IEvent message = null)
         {
             var results = new List<HealthCheck>();
 
@@ -91,11 +88,6 @@ namespace NzbDrone.Core.HealthCheck
                 {
                     results.Add(healthCheck.Check());
                 }
-            }
-
-            if (performServerChecks)
-            {
-                results.AddRange(_serverSideNotificationService.GetServerChecks());
             }
 
             foreach (var result in results)
@@ -122,17 +114,17 @@ namespace NzbDrone.Core.HealthCheck
         {
             if (message.Trigger == CommandTrigger.Manual)
             {
-                PerformHealthCheck(_healthChecks, null, true);
+                PerformHealthCheck(_healthChecks);
             }
             else
             {
-                PerformHealthCheck(_scheduledHealthChecks, null, true);
+                PerformHealthCheck(_scheduledHealthChecks);
             }
         }
 
         public void HandleAsync(ApplicationStartedEvent message)
         {
-            PerformHealthCheck(_startupHealthChecks, null, true);
+            PerformHealthCheck(_startupHealthChecks);
         }
 
         public void HandleAsync(IEvent message)

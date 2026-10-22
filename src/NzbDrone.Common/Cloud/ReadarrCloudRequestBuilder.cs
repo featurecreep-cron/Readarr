@@ -4,7 +4,7 @@ namespace NzbDrone.Common.Cloud
 {
     public interface IReadarrCloudRequestBuilder
     {
-        IHttpRequestBuilderFactory Services { get; }
+        IHttpRequestBuilderFactory Releases { get; }
         IHttpRequestBuilderFactory Metadata { get; }
     }
 
@@ -12,15 +12,15 @@ namespace NzbDrone.Common.Cloud
     {
         public ReadarrCloudRequestBuilder()
         {
-            //TODO: Create Update Endpoint
-            Services = new HttpRequestBuilder("https://readarr.servarr.com/v1/")
+            Releases = new HttpRequestBuilder("https://api.github.com/repos/featurecreep-cron/Readarr/")
+                .Accept(HttpAccept.Json)
                 .CreateFactory();
 
             Metadata = new HttpRequestBuilder("https://api.bookinfo.club/v1/{route}")
                 .CreateFactory();
         }
 
-        public IHttpRequestBuilderFactory Services { get; }
+        public IHttpRequestBuilderFactory Releases { get; }
 
         public IHttpRequestBuilderFactory Metadata { get; }
     }
