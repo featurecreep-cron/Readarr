@@ -28,9 +28,9 @@
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-    <PackageVersion Include="Mono.Posix.NETStandard" Version="5.20.1.34-servarr22" />
     <PackageVersion Include="Moq" Version="4.17.2" />
     <PackageVersion Include="MonoTorrent" Version="2.0.7" />
+    <PackageVersion Include="Openur.Mono.Unix" Version="7.1.0.256" />
     <PackageVersion Include="NBuilder" Version="6.1.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="NLog.Extensions.Logging" Version="5.2.3" />

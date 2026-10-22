@@ -6,7 +6,7 @@
   <ItemGroup>
     <PackageReference Include="NLog" />
     <PackageReference Include="System.IO.Abstractions" />
-    <PackageReference Include="Mono.Posix.NETStandard" />
+    <PackageReference Include="Openur.Mono.Unix" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NzbDrone.Common\Readarr.Common.csproj" />
