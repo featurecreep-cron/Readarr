@@ -64,11 +64,6 @@ namespace NzbDrone.Core.Books
 
         protected abstract bool IsMerge(TEntity local, TEntity remote);
 
-        protected virtual bool ShouldDelete(TEntity local)
-        {
-            return true;
-        }
-
         protected abstract UpdateResult UpdateEntity(TEntity local, TEntity remote);
 
         protected virtual UpdateResult MoveEntity(TEntity local, TEntity remote)
@@ -121,19 +116,12 @@ namespace NzbDrone.Core.Books
             var data = GetRemoteData(local, remoteItems, remoteData);
             var remote = data.Entity;
 
+            // A metadata source can return an author before it has all their books, or nothing during an outage,
+            // so absence is never a reason to delete. What the metadata no longer has stays until the user removes it.
             if (remote == null)
             {
-                if (ShouldDelete(local))
-                {
-                    _logger.Warn($"{typeof(TEntity).Name} {local} not found in metadata and is being deleted");
-                    DeleteEntity(local, false);
-                    return false;
-                }
-                else
-                {
-                    _logger.Error($"{typeof(TEntity).Name} {local} was not found, it may have been removed from Metadata sources.");
-                    return false;
-                }
+                _logger.Error($"{typeof(TEntity).Name} {local} was not found, it may have been removed from Metadata sources.");
+                return false;
             }
 
             if (data.Metadata != null)

@@ -179,10 +179,9 @@ namespace NzbDrone.Core.Test.MusicTests
         }
 
         [Test]
-        public void should_log_error_and_delete_if_musicbrainz_id_not_found_and_author_has_no_files()
+        public void should_log_error_but_not_delete_if_author_not_found_and_author_has_no_files()
         {
-            Mocker.GetMock<IAuthorService>()
-                .Setup(x => x.DeleteAuthor(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<bool>()));
+            GivenBooksForRefresh(new List<Book>());
 
             Subject.Execute(new RefreshAuthorCommand(_author.Id));
 
@@ -190,10 +189,9 @@ namespace NzbDrone.Core.Test.MusicTests
                 .Verify(v => v.UpdateAuthor(It.IsAny<Author>()), Times.Never());
 
             Mocker.GetMock<IAuthorService>()
-                .Verify(v => v.DeleteAuthor(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
+                .Verify(v => v.DeleteAuthor(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
 
-            ExceptionVerification.ExpectedErrors(1);
-            ExceptionVerification.ExpectedWarns(1);
+            ExceptionVerification.ExpectedErrors(2);
         }
 
         [Test]
