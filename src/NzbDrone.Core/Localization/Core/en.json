@@ -239,6 +239,7 @@
   "DataNone": "No books will be monitored",
   "Database": "Database",
   "DatabaseMigration": "Database Migration",
+  "DatabaseSchemaCheckMessage": "The database doesn't match what this version of {appName} expects: {problems}. Another Readarr fork may have changed it; restore a backup made before the change.",
   "Date": "Date",
   "Dates": "Dates",
   "DefaultMetadataProfileIdHelpText": "Default Metadata Profile for authors detected in this folder",
