@@ -48,11 +48,12 @@
     <PackageVersion Include="Sentry" Version="4.0.2" />
     <PackageVersion Include="SharpZipLib" Version="1.4.2" />
     <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageVersion Include="SourceGear.sqlite3" Version="3.53.4" />
     <PackageVersion Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="6.6.2" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.6.2" />
     <PackageVersion Include="System.Configuration.ConfigurationManager" Version="10.0.13" />
-    <PackageVersion Include="System.Data.SQLite.Core.Servarr" Version="1.0.115.5-18" />
+    <PackageVersion Include="System.Data.SQLite" Version="2.0.4" />
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="17.0.24" />
     <PackageVersion Include="System.IO.Abstractions" Version="17.0.24" />
     <PackageVersion Include="System.IO.FileSystem.AccessControl" Version="5.0.0" />
