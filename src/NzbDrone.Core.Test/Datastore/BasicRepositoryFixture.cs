@@ -311,6 +311,18 @@ namespace NzbDrone.Core.Test.Datastore
             data.Records.Should().BeEquivalentTo(_basicList.OrderByDescending(x => x.LastExecution).Skip((page - 1) * 2).Take(2));
         }
 
+        [TestCase("Id\"; DROP TABLE \"ScheduledTasks\"; --")]
+        [TestCase("LastExecution\" DESC, (SELECT 1)) --")]
+        public void get_paged_should_not_let_the_sort_key_write_sql(string sortKey)
+        {
+            Subject.InsertMany(_basicList);
+
+            var data = Subject.GetPaged(new PagingSpec<ScheduledTask>() { Page = 1, PageSize = 10, SortKey = sortKey, SortDirection = SortDirection.Ascending });
+
+            data.Records.Should().BeEquivalentTo(_basicList.OrderBy(x => x.Id));
+            Subject.All().Should().HaveCount(_basicList.Count);
+        }
+
         [TestCase(1, 2)]
         [TestCase(2, 2)]
         [TestCase(3, 1)]

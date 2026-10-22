@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Dapper;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Messaging.Events;
@@ -41,6 +42,8 @@ namespace NzbDrone.Core.Datastore
     public class BasicRepository<TModel> : IBasicRepository<TModel>
         where TModel : ModelBase, new()
     {
+        private static readonly Regex SortKeyRegex = new(@"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$", RegexOptions.Compiled);
+
         private readonly IEventAggregator _eventAggregator;
         private readonly PropertyInfo _keyProperty;
         private readonly List<PropertyInfo> _properties;
@@ -447,7 +450,9 @@ namespace NzbDrone.Core.Datastore
         {
             AddFilters(builder, pagingSpec);
 
-            if (pagingSpec.SortKey == null)
+            // The sort key comes from the request and is written into ORDER BY, so only a plain column or table.column
+            // is used; anything else would let the request write its own SQL.
+            if (pagingSpec.SortKey == null || !SortKeyRegex.IsMatch(pagingSpec.SortKey))
             {
                 pagingSpec.SortKey = $"{_table}.{_keyProperty.Name}";
             }
