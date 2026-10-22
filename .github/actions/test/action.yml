@@ -1,0 +1,101 @@
+name: Test
+description: Runs unit/integration tests
+
+inputs:
+  use_postgres:
+    description: 'Whether postgres should be used for the database'
+  postgres-version:
+    description: 'Which postgres version should be used for the database'
+  os:
+    description: 'OS that the tests are running on'
+    required: true
+  artifact:
+    description: 'Test binary artifact'
+    required: true
+  pattern:
+    description: 'Pattern for DLLs'
+    required: true
+  filter:
+    description: 'Filter for tests'
+    required: true
+  integration_tests:
+    description: 'True if running integration tests'
+  binary_artifact:
+    description: 'Binary artifact for integration tests'
+  binary_path:
+    description: 'Path witin binary artifact for integration tests'
+  coverage:
+    description: 'True to collect code coverage'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+      with:
+        global-json-file: global.json
+
+    - name: Setup Postgres
+      if: ${{ inputs.use_postgres }}
+      uses: ikalnytskyi/action-setup-postgres@c4dda34aae1c821e3a771b68b73b13af3198a7ee  # v8
+      with:
+        postgres-version: ${{ inputs.postgres-version }}
+
+    - name: Setup Test Variables
+      shell: bash
+      run: |
+        echo "RESULTS_NAME=${{ inputs.integration_tests && 'integration-' || 'unit-' }}${{ inputs.artifact }}${{ inputs.use_postgres && '-postgres' }}${{ inputs.use_postgres && inputs.postgres-version && inputs.postgres-version }}" >> "$GITHUB_ENV"
+
+    - name: Setup Postgres Environment Variables
+      if: ${{ inputs.use_postgres }}
+      shell: bash
+      run: |
+        echo "Readarr__Postgres__Host=localhost" >> "$GITHUB_ENV"
+        echo "Readarr__Postgres__Port=5432" >> "$GITHUB_ENV"
+        echo "Readarr__Postgres__User=postgres" >> "$GITHUB_ENV"
+        echo "Readarr__Postgres__Password=postgres" >> "$GITHUB_ENV"
+
+    - name: Download Artifact
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+      with:
+        name: ${{ inputs.artifact }}
+        path: _tests
+
+    - name: Download Binary Artifact
+      if: ${{ inputs.integration_tests }}
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+      with:
+        name: ${{ inputs.binary_artifact }}
+        path: _output
+
+    - name: Set up binary artifact
+      if: ${{ inputs.binary_path != '' }}
+      shell: bash
+      run: mv ./_output/${{inputs.binary_path}} _tests/bin
+
+    - name: Make executable
+      if: startsWith(inputs.os, 'windows') != true
+      shell: bash
+      run: chmod +x ./_tests/Readarr.Test.Dummy
+
+    - name: Make Readarr binary executable
+      if: ${{ inputs.integration_tests && !startsWith(inputs.os, 'windows') }}
+      shell: bash
+      run: chmod +x ./_tests/bin/Readarr
+
+    - name: Run tests
+      shell: bash
+      run: |
+        coverage=()
+        if [ "${{ inputs.coverage }}" = "true" ]; then
+          coverage=(--collect "XPlat Code Coverage" --results-directory TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura)
+        fi
+
+        dotnet test ./_tests/${{ inputs.pattern }} --filter "${{ inputs.filter }}" --logger "trx;LogFileName=${{ env.RESULTS_NAME }}.trx" --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true" "${coverage[@]}"
+
+    - name: Upload Test Results
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+      with:
+        name: results-${{ env.RESULTS_NAME }}
+        path: TestResults/**/*

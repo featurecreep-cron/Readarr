@@ -1,0 +1,155 @@
+name: Build Backend
+description: Builds the backend and packages it
+
+inputs:
+  branch:
+    description: "Branch name for this build"
+    required: true
+  version:
+    description: "Version number to build"
+    required: true
+  framework:
+    description: ".net framework used for the build"
+    required: true
+  runtime:
+    description: "Run time to build for"
+    required: true
+  package_tests:
+    description: "True if tests should be packaged for later testing steps"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache nuget packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj', '**/Directory.*.props') }}
+        restore-keys:
+          ${{ runner.os }}-nuget-
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+      with:
+        global-json-file: global.json
+
+    - name: Setup Environment Variables
+      id: variables
+      shell: bash
+      run: |
+        DOTNET_VERSION=$(jq -r '.sdk.version' global.json)
+
+        echo "SDK_PATH=${{ env.DOTNET_ROOT }}/sdk/${DOTNET_VERSION}" >> "$GITHUB_ENV"
+        echo "READARR_VERSION=${{ inputs.version }}" >> "$GITHUB_ENV"
+        echo "BRANCH=${{ inputs.branch }}" >> "$GITHUB_ENV"
+
+    - name: Enable Extra Platforms In SDK
+      if: ${{ inputs.runtime == 'freebsd-x64' }}
+      shell: bash
+      run: |
+        BUNDLEDVERSIONS="${SDK_PATH}/Microsoft.NETCoreSdk.BundledVersions.props"
+
+        if grep -q freebsd-x64 "$BUNDLEDVERSIONS"; then
+          echo "Extra platforms already enabled"
+        else
+          echo "Enabling extra platform support"
+          sed -i.ORI 's/osx-x64/osx-x64;freebsd-x64/' "$BUNDLEDVERSIONS"
+        fi
+
+    - name: Update Version Number
+      shell: bash
+      run: |
+        if [ "$READARR_VERSION" != "" ]; then
+          echo "Updating version info to: $READARR_VERSION"
+          sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$READARR_VERSION<\/AssemblyVersion>/g" src/Directory.Build.props
+          sed -i'' -e "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH}<\/AssemblyConfiguration>/g" src/Directory.Build.props
+          sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$READARR_VERSION<\/string>/g" distribution/osx/Readarr.app/Contents/Info.plist
+        fi
+
+    - name: Build Backend
+      shell: bash
+      run: |
+        runtime="${{ inputs.runtime }}"
+        slnFile=src/Readarr.sln
+
+        IFS='-' read -ra SPLIT <<< "$runtime"
+
+        if [ "${SPLIT[0]}" == "win" ]; then
+          platform=Windows
+        else
+          platform=Posix
+        fi
+
+        rm -rf _output
+        rm -rf _tests
+
+        echo "Building Readarr for $runtime, Platform: $platform"
+
+        dotnet msbuild -restore $slnFile -p:SelfContained=true -p:Configuration=Release -p:Platform=$platform -p:RuntimeIdentifiers=$runtime -p:EnableWindowsTargeting=true -t:PublishAllRids
+
+    - name: Package
+      shell: bash
+      run: |
+        framework="${{ inputs.framework }}"
+        runtime="${{ inputs.runtime }}"
+        folder=_artifacts/$runtime/$framework/Readarr
+
+        IFS='-' read -ra SPLIT <<< "$runtime"
+
+        echo "Packaging files"
+        rm -rf $folder
+        mkdir -p $folder
+        cp -r _output/$framework/$runtime/publish/* $folder
+        cp -r _output/Readarr.Update/$framework/$runtime/publish $folder/Readarr.Update
+        cp LICENSE.md $folder
+
+        case "${SPLIT[0]}" in
+          linux|freebsd*|osx)
+            echo "Removing Service helpers"
+            rm -f $folder/ServiceUninstall.*
+            rm -f $folder/ServiceInstall.*
+
+            echo "Removing Readarr.Windows"
+            rm $folder/Readarr.Windows.*
+
+            echo "Adding Readarr.Mono to UpdatePackage"
+            cp $folder/Readarr.Mono.* $folder/Readarr.Update
+            cp $folder/Mono.Posix.NETStandard.* $folder/Readarr.Update
+            cp $folder/libMonoPosixHelper.* $folder/Readarr.Update
+            ;;
+          win)
+            cp -r _output/$framework-windows/$runtime/publish/* $folder
+
+            echo "Removing Readarr.Mono"
+            rm -f $folder/Readarr.Mono.*
+            rm -f $folder/Mono.Posix.NETStandard.*
+            rm -f $folder/libMonoPosixHelper.*
+
+            echo "Adding Readarr.Windows to UpdatePackage"
+            cp $folder/Readarr.Windows.* $folder/Readarr.Update
+            ;;
+        esac
+
+    - name: Package Tests
+      if: ${{ inputs.package_tests == 'true' }}
+      shell: bash
+      run: |
+        framework="${{ inputs.framework }}"
+        runtime="${{ inputs.runtime }}"
+
+        cp test.sh "_tests/$framework/$runtime/publish"
+
+        rm -f _tests/$framework/$runtime/*.log.config
+
+    - name: Upload Test Artifacts
+      if: ${{ inputs.package_tests == 'true' }}
+      uses: ./.github/actions/publish-test-artifact
+      with:
+        framework: ${{ inputs.framework }}
+        runtime: ${{ inputs.runtime }}
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+      with:
+        name: build-${{ inputs.runtime }}
+        path: _artifacts/**/*

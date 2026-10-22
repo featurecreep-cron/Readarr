@@ -1,0 +1,262 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  # No `branches:` filter, so stacked pull requests (based on another feature
+  # branch) are built too.
+  pull_request:
+  # Called by release.yml to verify main before anything is tagged.
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to stamp into the build (X.Y.Z), defaults to the version below"
+        type: string
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FRAMEWORK: net10.0
+  RAW_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  READARR_MAJOR_VERSION: 0
+  VERSION: 0.4.19
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      framework: ${{ steps.variables.outputs.framework }}
+      major_version: ${{ steps.variables.outputs.major_version }}
+      version: ${{ steps.variables.outputs.version }}
+      branch: ${{ steps.variables.outputs.branch }}
+    steps:
+      - name: Setup Environment Variables
+        id: variables
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          version="${INPUT_VERSION:-$VERSION}"
+          echo "framework=${{ env.FRAMEWORK }}" >> "$GITHUB_OUTPUT"
+          echo "major_version=${{ env.READARR_MAJOR_VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "branch=${RAW_BRANCH_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: freebsd-x64
+            package_tests: false
+          - runtime: linux-arm
+            package_tests: false
+          - runtime: linux-arm64
+            package_tests: false
+          - runtime: linux-musl-arm64
+            package_tests: false
+          - runtime: linux-musl-x64
+            package_tests: false
+          - runtime: linux-x64
+            package_tests: true
+          - runtime: osx-arm64
+            package_tests: true
+          - runtime: osx-x64
+            package_tests: false
+          - runtime: win-x64
+            package_tests: true
+          - runtime: win-x86
+            package_tests: false
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          branch: ${{ needs.prepare.outputs.branch }}
+          version: ${{ needs.prepare.outputs.version }}
+          framework: ${{ needs.prepare.outputs.framework }}
+          runtime: ${{ matrix.runtime }}
+          package_tests: ${{ matrix.package_tests }}
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      # setup-node reads the Node version from the "volta" block in package.json.
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version-file: package.json
+          cache: yarn
+
+      - name: Yarn Install
+        run: yarn install --frozen-lockfile --network-timeout 120000
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Stylelint
+        run: yarn stylelint-linux -f github
+
+      - name: Build
+        run: yarn build --env production
+
+      - name: Publish UI Artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: build_ui
+          path: _output/UI/**/*
+
+  unit_test:
+    needs: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact: tests-linux-x64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+            coverage: true
+          - os: macos-latest
+            artifact: tests-osx-arm64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+          - os: windows-latest
+            artifact: tests-win-x64
+            filter: TestCategory!=ManualTest&TestCategory!=LINUX&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          os: ${{ matrix.os }}
+          artifact: ${{ matrix.artifact }}
+          pattern: Readarr.*.Test.dll
+          filter: ${{ matrix.filter }}
+          coverage: ${{ matrix.coverage }}
+
+  unit_test_postgres:
+    needs: backend
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres-version: [16, 17, 18]
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          os: ubuntu-latest
+          artifact: tests-linux-x64
+          pattern: Readarr.*.Test.dll
+          filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+          use_postgres: true
+          postgres-version: ${{ matrix.postgres-version }}
+
+  integration_test:
+    needs: [prepare, backend]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact: tests-linux-x64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory=IntegrationTest
+            binary_artifact: build-linux-x64
+            binary_path: linux-x64/${{ needs.prepare.outputs.framework }}/Readarr
+          - os: macos-latest
+            artifact: tests-osx-arm64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory=IntegrationTest
+            binary_artifact: build-osx-arm64
+            binary_path: osx-arm64/${{ needs.prepare.outputs.framework }}/Readarr
+          - os: windows-latest
+            artifact: tests-win-x64
+            filter: TestCategory!=ManualTest&TestCategory!=LINUX&TestCategory=IntegrationTest
+            binary_artifact: build-win-x64
+            binary_path: win-x64/${{ needs.prepare.outputs.framework }}/Readarr
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          os: ${{ matrix.os }}
+          artifact: ${{ matrix.artifact }}
+          pattern: Readarr.*.Test.dll
+          filter: ${{ matrix.filter }}
+          integration_tests: true
+          binary_artifact: ${{ matrix.binary_artifact }}
+          binary_path: ${{ matrix.binary_path }}
+
+  # Servarr requires 80% coverage on new code. Measured on the lines this pull
+  # request changes, not the whole codebase, so legacy gaps don't block a PR
+  # and a well-tested PR can't hide behind them either.
+  coverage:
+    needs: unit_test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: results-unit-tests-linux-x64
+          path: TestResults
+
+      - name: Coverage of changed lines
+        run: |
+          pip install --quiet diff-cover==10.6.0
+          reports=$(find TestResults -name 'coverage.cobertura.xml')
+          if [ -z "$reports" ]; then
+            echo "::error::No coverage report was produced."
+            exit 1
+          fi
+          diff-cover $reports \
+            --compare-branch="${{ github.event.pull_request.base.sha }}" \
+            --exclude 'src/*.Test/*' 'src/NzbDrone.Test.Common/*' 'src/NzbDrone.Test.Dummy/*' 'src/NzbDrone.Core/Datastore/Migration/*' \
+            --fail-under=80 \
+            --markdown-report coverage.md
+          cat coverage.md >> "$GITHUB_STEP_SUMMARY"
+
+  # The one check branch protection requires. Matrix job names change with the
+  # matrix, so requiring them individually breaks every time a runtime or
+  # Postgres version is added or removed.
+  build-result:
+    needs: [backend, frontend, unit_test, unit_test_postgres, integration_test, coverage]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the build outcome
+        run: |
+          echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "::error::One or more build jobs failed."
+            exit 1
+          fi

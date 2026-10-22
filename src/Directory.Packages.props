@@ -9,6 +9,7 @@
     <PackageVersion Include="DryIoc.Microsoft.DependencyInjection" Version="6.2.0" />
     <PackageVersion Include="Equ" Version="2.3.0" />
     <PackageVersion Include="FluentAssertions" Version="5.10.3" />
+    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
     <PackageVersion Include="IPAddressRange" Version="6.1.0" />
     <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="6.36.0" />
     <PackageVersion Include="Polly" Version="8.5.2" />
