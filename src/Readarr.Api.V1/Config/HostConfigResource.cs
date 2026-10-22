@@ -4,10 +4,11 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Security;
 using NzbDrone.Core.Update;
 using Readarr.Http.REST;
+using Readarr.Http.Validation;
 
 namespace Readarr.Api.V1.Config
 {
-    public class HostConfigResource : RestResource
+    public class HostConfigResource : RestResource, ISslCertificateResource
     {
         public string BindAddress { get; set; }
         public int Port { get; set; }
@@ -25,6 +26,7 @@ namespace Readarr.Api.V1.Config
         public string Branch { get; set; }
         public string ApiKey { get; set; }
         public string SslCertPath { get; set; }
+        public string SslKeyPath { get; set; }
         public string SslCertPassword { get; set; }
         public string UrlBase { get; set; }
         public string TrustedNetworks { get; set; }
@@ -71,6 +73,7 @@ namespace Readarr.Api.V1.Config
                 Branch = model.Branch,
                 ApiKey = model.ApiKey,
                 SslCertPath = model.SslCertPath,
+                SslKeyPath = model.SslKeyPath,
                 SslCertPassword = model.SslCertPassword,
                 UrlBase = model.UrlBase,
                 TrustedNetworks = model.TrustedNetworks,
