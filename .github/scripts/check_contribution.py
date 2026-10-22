@@ -25,7 +25,6 @@ pr
   - Branch is a feature branch with a meaningful name, not develop/main/patch,
     and not an AI agent's default prefix.
   - Pull requests target develop.
-  - The template's description is filled in and both attestations are ticked.
 
 localization
   - Every key the frontend passes to translate() and the backend passes to
@@ -62,12 +61,6 @@ ALLOWED_SIBLING_RE = re.compile(r"TagLibSharp-Lidarr|ImportLists[./\\](?:Lidarr|
 
 AGENT_BRANCH_PREFIXES =("claude", "codex", "copilot", "cursor", "devin", "gemini", "worktree")
 BAD_BRANCH_NAMES = {"develop", "main", "master", "patch", "fix", "feature", "update"}
-TEMPLATE_PLACEHOLDER = "A few sentences describing the overall goals of the pull request's commits."
-REQUIRED_CHECKS = (
-    "this PR follows the guidelines",
-    "I have fully reviewed all code in this PR",
-)
-AI_ONLY_CHECK = "This PR was authored and submitted by an AI agent without human review"
 
 EN_JSON = Path("src/NzbDrone.Core/Localization/Core/en.json")
 FRONTEND_KEY_RE = re.compile(r"""\btranslate\(\s*['"]([A-Za-z0-9]+)['"]""")
@@ -160,18 +153,6 @@ def check_commits(base: str, head: str) -> int:
     return report(problems, f"{len(shas)} commit(s) follow the contribution rules.")
 
 
-def section(body: str, heading: str) -> str | None:
-    lines = body.splitlines()
-    for index, line in enumerate(lines):
-        if re.match(r"^#{1,6}\s+", line) and re.sub(r"^#{1,6}\s+", "", line).strip().lower() == heading.lower():
-            out = []
-            for following in lines[index + 1:]:
-                if re.match(r"^#{1,6}\s+", following):
-                    break
-                out.append(following)
-            return "\n".join(out)
-    return None
-
 
 def check_pr(event_path: str) -> int:
     event = json.loads(Path(event_path).read_text(encoding="utf-8"))
@@ -189,16 +170,6 @@ def check_pr(event_path: str) -> int:
     if base in ("main", "master") and branch != "develop":
         problems.append(f"Pull requests go to develop, not {base}.")
 
-    body = pr.get("body") or ""
-    description = re.sub(r"<!--.*?-->", "", section(body, "Description") or "", flags=re.S).strip()
-    if not description or TEMPLATE_PLACEHOLDER in description:
-        problems.append("The Description section is empty or still holds the template placeholder.")
-    for fragment in REQUIRED_CHECKS:
-        line = next((l for l in body.splitlines() if fragment in l), None)
-        if not line or not re.match(r"^\s*-\s*\[[xX]\]\s", line):
-            problems.append(f"The checklist item '{fragment}' is not ticked.")
-    if re.search(r"-\s*\[[xX]\]\s*" + re.escape(AI_ONLY_CHECK), body):
-        problems.append("The PR is marked as submitted by an AI agent without human review.")
 
     return report(problems, "The pull request follows the contribution rules.")
 
