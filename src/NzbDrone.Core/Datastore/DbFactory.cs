@@ -167,6 +167,10 @@ namespace NzbDrone.Core.Datastore
                     throw new ReadarrStartupException(e, "Error creating main database");
                 }
             }
+            catch (UnknownMigrationException)
+            {
+                throw;
+            }
             catch (Exception e)
             {
                 throw new ReadarrStartupException(e, "Error creating main database");
