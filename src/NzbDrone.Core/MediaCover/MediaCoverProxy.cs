@@ -21,6 +21,7 @@ namespace NzbDrone.Core.MediaCover
 
     public class MediaCoverProxy : IMediaCoverProxy
     {
+        // Probe for the test gate; never merged.
         private const int MaxRedirects = 5;
 
         private readonly IHttpClient _httpClient;

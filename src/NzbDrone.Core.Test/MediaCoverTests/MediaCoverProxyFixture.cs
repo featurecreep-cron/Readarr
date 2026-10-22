@@ -89,5 +89,11 @@ namespace NzbDrone.Core.Test.MediaCoverTests
 
             Subject.GetImage(Register("http://93.184.215.14/cover.jpg")).Should().Equal(Image);
         }
+
+        [Test]
+        public void gate_probe_passes_without_the_change()
+        {
+            Subject.GetImage(Register("http://93.184.215.14/cover.jpg")).Should().Equal(Image);
+        }
     }
 }
