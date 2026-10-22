@@ -716,6 +716,8 @@
   "Password": "Password",
   "PasswordConfirmation": "Password Confirmation",
   "PasswordHelpText": "Calibre content server password",
+  "PasswordResetTokenConfiguredHealthCheckMessage": "A password reset token is configured. Remove the READARR__AUTH__RESETTOKEN environment variable once you no longer need it",
+  "PasswordResetTokenTooShortHealthCheckMessage": "The configured password reset token is shorter than {length} characters and is being ignored",
   "PastDays": "Past Days",
   "PastDaysHelpText": "Days for iCal feed to look into the past",
   "Path": "Path",

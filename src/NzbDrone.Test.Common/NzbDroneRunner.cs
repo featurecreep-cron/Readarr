@@ -22,6 +22,7 @@ namespace NzbDrone.Test.Common
         private readonly IProcessProvider _processProvider;
         private readonly IRestClient _restClient;
         private Process _nzbDroneProcess;
+        private bool _enableAuth;
         private List<string> _startupLog;
 
         public string AppData { get; private set; }
@@ -40,6 +41,7 @@ namespace NzbDrone.Test.Common
 
         public void Start(bool enableAuth = false)
         {
+            _enableAuth = enableAuth;
             AppData = Path.Combine(TestContext.CurrentContext.TestDirectory, "_intg_" + TestBase.GetUID());
             Directory.CreateDirectory(AppData);
 
@@ -144,6 +146,11 @@ namespace NzbDrone.Test.Common
         private void Start(string outputNzbdroneConsoleExe)
         {
             StringDictionary envVars = new();
+            if (!_enableAuth)
+            {
+                envVars.Add("Readarr__Auth__Method", "None");
+            }
+
             if (PostgresOptions?.Host != null)
             {
                 envVars.Add("Readarr__Postgres__Host", PostgresOptions.Host);

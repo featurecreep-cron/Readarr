@@ -1,8 +1,10 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
+using NzbDrone.Common.Options;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Test.Common;
@@ -19,6 +21,10 @@ namespace NzbDrone.Api.Test.Authentication
         public void Setup()
         {
             Mocker.SetConstant<ICacheManager>(new CacheManager());
+
+            Mocker.GetMock<IOptions<AuthOptions>>()
+                  .SetupGet(s => s.Value)
+                  .Returns(new AuthOptions());
 
             Mocker.GetMock<IConfigFileProvider>()
                   .SetupGet(s => s.AuthenticationMethod)
