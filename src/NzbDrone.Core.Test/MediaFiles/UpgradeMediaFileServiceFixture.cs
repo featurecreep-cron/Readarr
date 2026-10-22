@@ -102,6 +102,23 @@ namespace NzbDrone.Core.Test.MediaFiles
         }
 
         [Test]
+        public void should_not_remove_an_existing_file_outside_the_author_folder()
+        {
+            var outside = @"C:\Test\Music\Other Author\other.avi".AsOsAgnostic();
+
+            _localTrack.Book = Builder<Book>.CreateNew()
+                .With(e => e.BookFiles = new LazyLoaded<List<BookFile>>(
+                          new List<BookFile> { new BookFile { Id = 1, Path = outside } }))
+                .Build();
+
+            Subject.UpgradeBookFile(_trackFile, _localTrack);
+
+            Mocker.GetMock<IDiskProvider>().Verify(v => v.MoveFile(outside, It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
         public void should_delete_single_track_file_once()
         {
             GivenSingleTrackWithSingleTrackFile();
