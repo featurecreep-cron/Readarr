@@ -1,6 +1,6 @@
 # Readarr revival roadmap
 
-Status: draft for review, 2026-10-21. Owner: featurecreep-cron. Fork: featurecreep-cron/Readarr.
+Status: in progress since 2026-10-22. Issues: https://github.com/featurecreep-cron/Readarr/issues, board: https://github.com/users/featurecreep-cron/projects/4. Owner: featurecreep-cron. Fork: featurecreep-cron/Readarr.
 
 ## Goal
 
@@ -82,23 +82,23 @@ There are also two continuous tracks: **upstream watch** and **issue triage** (s
 
 ## Phase 0: Project setup
 
-- [ ] **Enable issues** on featurecreep-cron/Readarr. Forks have them off by default.
-- [ ] **Create a GitHub Project board** with Status, Phase, Area and Size fields, and **one milestone per phase**.
-- [ ] **Create the labels:**
+- [x] **Enable issues** on featurecreep-cron/Readarr. Forks have them off by default.
+- [x] **Create a GitHub Project board** with Status, Phase, Area and Size fields, and **one milestone per phase**.
+- [x] **Create the labels:**
   - `type/bug`, `type/feature`, `type/port`, `type/security`, `type/refactor`, `type/ci`
   - `area/*` (metadata, import, download, indexer, audiobook, ui, api, db, calibre, packaging)
   - `port/sonarr`, `port/lidarr`, `port/radarr`
   - `no-test-gate`
-- [ ] **File every item in this roadmap as an issue.**
+- [x] **File every item in this roadmap as an issue.**
   - Each issue states the problem, the acceptance criteria and, for ports, the upstream commit to port.
   - Each epic is a tracking issue with sub-issues.
-- [ ] **Branches:**
+- [x] **Branches:**
   - `develop` is the default branch.
   - `main` is the release branch, promoted from `develop` by the release workflow.
-  - Protection requires the `Build` and `Contribution rules` checks.
-- [ ] **Tag `v0.4.19`** on upstream's last commit, so version numbering continues from there.
+  - [ ] Protection requires the `Build` and `Contribution rules` checks.
+- [x] **Tag `v0.4.19`** on upstream's last commit, so version numbering continues from there.
 - [ ] **Install the bot app and the promoter app** on the repo and add their secrets. Owner action.
-- [ ] **Delete the local `foundation` branch.** It is cherry-picks of smilerz commits and is replaced by `modernize`.
+- [x] **Delete the local `foundation` branch.** It is cherry-picks of smilerz commits and is replaced by `modernize`.
 
 ## Phase 1: Foundation
 
