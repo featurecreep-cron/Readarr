@@ -8,10 +8,12 @@ using NzbDrone.Core.Http;
 using NzbDrone.Core.MetadataSource.Goodreads;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
+using NzbDrone.Test.Common.Categories;
 
 namespace NzbDrone.Core.Test.MetadataSource.Goodreads
 {
     [TestFixture]
+    [MetadataServerTest]
     public class GoodreadsProxySearchFixture : CoreTest<GoodreadsSearchProxy>
     {
         [SetUp]

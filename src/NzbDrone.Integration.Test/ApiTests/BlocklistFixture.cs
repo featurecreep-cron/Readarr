@@ -1,12 +1,13 @@
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Test.Common.Categories;
 using Readarr.Api.V1.Author;
 using Readarr.Api.V1.Blocklist;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {
     [TestFixture]
-    [Ignore("Waiting for metadata to be back again", Until = "2026-01-15 00:00:00Z")]
+    [MetadataServerTest]
     public class BlocklistFixture : IntegrationTest
     {
         private AuthorResource _author;

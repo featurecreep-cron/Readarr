@@ -124,7 +124,7 @@ def run_tests(names: set[str], label: str) -> tuple[set[str], set[str]]:
     subprocess.run(
         [
             "dotnet", "test", *assemblies,
-            "--filter", f"({name_filter})&TestCategory!=ManualTest&TestCategory!=WINDOWS",
+            "--filter", f"({name_filter})&TestCategory!=ManualTest&TestCategory!=MetadataServer&TestCategory!=WINDOWS",
             "--results-directory", str(results),
             "--logger", "trx",
         ],

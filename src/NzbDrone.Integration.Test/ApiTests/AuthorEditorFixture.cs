@@ -2,12 +2,13 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Test.Common;
+using NzbDrone.Test.Common.Categories;
 using Readarr.Api.V1.Author;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {
     [TestFixture]
-    [Ignore("Waiting for metadata to be back again", Until = "2026-01-15 00:00:00Z")]
+    [MetadataServerTest]
     public class AuthorEditorFixture : IntegrationTest
     {
         private void GivenExistingAuthor()
