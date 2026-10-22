@@ -84,6 +84,11 @@ namespace NzbDrone.Common.Test.Http
         [SetUp]
         public void SetUp()
         {
+            if (!_httpBinHosts.Any())
+            {
+                Assert.Inconclusive("No TestSites available");
+            }
+
             Mocker.GetMock<IPlatformInfo>().Setup(c => c.Version).Returns(new Version("1.0.0"));
             Mocker.GetMock<IOsInfo>().Setup(c => c.Name).Returns("TestOS");
             Mocker.GetMock<IOsInfo>().Setup(c => c.Version).Returns("9.0.0");
