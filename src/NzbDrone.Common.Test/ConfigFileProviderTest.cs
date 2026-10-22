@@ -68,6 +68,15 @@ namespace NzbDrone.Common.Test
         }
 
         [Test]
+        public void should_change_basic_authentication_to_forms()
+        {
+            _configFileContents = "<Config><AuthenticationMethod>Basic</AuthenticationMethod></Config>";
+
+            Subject.AuthenticationMethod.Should().Be(AuthenticationType.Forms);
+            _configFileContents.ToLowerInvariant().Should().Contain("<authenticationmethod>forms</authenticationmethod>");
+        }
+
+        [Test]
         public void GetValue_Success()
         {
             const string key = "Port";
