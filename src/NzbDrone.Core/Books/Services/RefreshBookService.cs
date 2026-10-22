@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Books
 
             var book = remote.SingleOrDefault(x => x.ForeignBookId == local.ForeignBookId);
 
-            if (book == null && ShouldDelete(local))
+            if (book == null && !ShouldLookUpWhenMissing(local))
             {
                 return result;
             }
@@ -154,11 +154,12 @@ namespace NzbDrone.Core.Books
             }
         }
 
-        protected override bool ShouldDelete(Book local)
+        // Missing from the author's books: a book that was added by hand or has files is worth looking up on its own,
+        // in case it moved to another author.
+        private bool ShouldLookUpWhenMissing(Book local)
         {
-            // not manually added and has no files
-            return local.AddOptions.AddType != BookAddType.Manual &&
-                !_mediaFileService.GetFilesByBook(local.Id).Any();
+            return local.AddOptions.AddType == BookAddType.Manual ||
+                _mediaFileService.GetFilesByBook(local.Id).Any();
         }
 
         protected override void LogProgress(Book local)
