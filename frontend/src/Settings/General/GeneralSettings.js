@@ -25,6 +25,7 @@ const requiresRestartKeys = [
   'enableSsl',
   'sslPort',
   'sslCertPath',
+  'sslKeyPath',
   'sslCertPassword'
 ];
 

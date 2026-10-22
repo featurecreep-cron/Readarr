@@ -25,6 +25,7 @@ function HostSettings(props) {
     enableSsl,
     sslPort,
     sslCertPath,
+    sslKeyPath,
     sslCertPassword,
     launchBrowser
   } = settings;
@@ -170,6 +171,28 @@ function HostSettings(props) {
               helpTextWarning={translate('SslCertPathHelpTextWarning')}
               onChange={onInputChange}
               {...sslCertPath}
+            />
+          </FormGroup> :
+          null
+      }
+
+      {
+        enableSsl.value ?
+          <FormGroup
+            advancedSettings={advancedSettings}
+            isAdvanced={true}
+          >
+            <FormLabel>
+              {translate('SSLKeyPath')}
+            </FormLabel>
+
+            <FormInputGroup
+              type={inputTypes.TEXT}
+              name="sslKeyPath"
+              helpText={translate('SslKeyPathHelpText')}
+              helpTextWarning={translate('SslKeyPathHelpTextWarning')}
+              onChange={onInputChange}
+              {...sslKeyPath}
             />
           </FormGroup> :
           null
