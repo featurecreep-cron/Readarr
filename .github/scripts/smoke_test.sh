@@ -22,7 +22,7 @@ fail() {
     exit 1
 }
 
-"$binary" -nobrowser -data="$data" > "$log" 2>&1 &
+Readarr__Server__AllowedHosts=readarr.test "$binary" -nobrowser -data="$data" > "$log" 2>&1 &
 pid=$!
 trap cleanup EXIT
 
@@ -33,6 +33,11 @@ for _ in $(seq 1 90); do
 done
 curl -fsS "$base/ping" > /dev/null || fail "/ping did not answer within 3 minutes"
 echo "started"
+
+status=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: elsewhere.test' "$base/ping")
+[ "$status" = 400 ] || fail "a request for a host not in Allowed Hosts returned $status, expected 400"
+curl -fsS -H 'Host: readarr.test' "$base/ping" > /dev/null || fail "a request for an allowed host was refused"
+echo "allowed hosts enforced"
 
 status=$(curl -s -o /dev/null -w '%{http_code}' "$base/api/v1/system/status")
 [ "$status" = 401 ] || fail "an unauthenticated API call returned $status, expected 401"
