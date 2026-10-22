@@ -70,7 +70,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 // The existing files are moved aside rather than deleted, so a failed move or copy can put them back.
                 // They go to the recycle bin only once the new file is in place.
-                var setAside = SetAside(existingFiles);
+                var setAside = SetAside(existingFiles.Where(f => IsInAuthorFolder(f, localBook)).ToList());
 
                 try
                 {
@@ -93,7 +93,11 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     bookFile.CalibreId = file.CalibreId;
 
-                    if (setAside.TryGetValue(file, out var asidePath))
+                    if (!IsInAuthorFolder(file, localBook))
+                    {
+                        _logger.Warn("Not removing {0} after upgrading {1}: it is outside the author folder {2}", file.Path, localBook.Book, localBook.Author.Path);
+                    }
+                    else if (setAside.TryGetValue(file, out var asidePath))
                     {
                         _logger.Debug("Removing existing book file: {0}", file);
                         _recycleBinProvider.DeleteFile(asidePath, rootFolderPath.GetRelativePath(_diskProvider.GetParentFolder(file.Path)));
@@ -136,6 +140,13 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             return moveFileResult;
+        }
+
+        // A file the database links to this book but which lives outside its author's folder may belong to something else,
+        // for example after a wrong match. It's left where it is.
+        private static bool IsInAuthorFolder(BookFile file, LocalBook localBook)
+        {
+            return localBook.Author.Path.IsParentPath(file.Path);
         }
 
         private Dictionary<BookFile, string> SetAside(List<BookFile> files)
