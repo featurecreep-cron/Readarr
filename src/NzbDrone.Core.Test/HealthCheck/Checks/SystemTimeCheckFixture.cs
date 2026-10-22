@@ -1,10 +1,8 @@
 using System;
-using System.Text;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Cloud;
 using NzbDrone.Common.Http;
-using NzbDrone.Common.Serializer;
 using NzbDrone.Core.HealthCheck.Checks;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Test.Framework;
@@ -21,9 +19,14 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
             Mocker.SetConstant<IReadarrCloudRequestBuilder>(new ReadarrCloudRequestBuilder());
         }
 
-        private void GivenServerTime(DateTime dateTime)
+        private void GivenServerTime(DateTime? dateTime)
         {
-            var json = new ServiceTimeResponse { DateTimeUtc = dateTime }.ToJson();
+            var headers = new HttpHeader();
+
+            if (dateTime.HasValue)
+            {
+                headers.Add("Date", dateTime.Value.ToString("R"));
+            }
 
             Mocker.GetMock<ILocalizationService>()
                   .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
@@ -31,7 +34,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
 
             Mocker.GetMock<IHttpClient>()
                   .Setup(s => s.Execute(It.IsAny<HttpRequest>()))
-                  .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), Encoding.ASCII.GetBytes(json)));
+                  .Returns<HttpRequest>(r => new HttpResponse(r, headers, Array.Empty<byte>()));
         }
 
         [Test]
@@ -49,6 +52,14 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
 
             Subject.Check().ShouldBeError();
             ExceptionVerification.ExpectedErrors(1);
+        }
+
+        [Test]
+        public void should_not_return_error_when_server_sends_no_date()
+        {
+            GivenServerTime(null);
+
+            Subject.Check().ShouldBeOk();
         }
     }
 }

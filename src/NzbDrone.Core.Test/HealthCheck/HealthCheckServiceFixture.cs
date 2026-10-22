@@ -19,10 +19,6 @@ namespace NzbDrone.Core.Test.HealthCheck
 
             Mocker.SetConstant<IEnumerable<IProvideHealthCheck>>(new[] { _healthCheck });
             Mocker.SetConstant<ICacheManager>(Mocker.Resolve<CacheManager>());
-
-            Mocker.GetMock<IServerSideNotificationService>()
-                .Setup(v => v.GetServerChecks())
-                .Returns(new List<Core.HealthCheck.HealthCheck>());
         }
 
         [Test]

@@ -26,7 +26,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _client = client;
             _logger = logger;
 
-            _cloudRequestBuilder = cloudRequestBuilder.Services;
+            _cloudRequestBuilder = cloudRequestBuilder.Releases;
         }
 
         public override HealthCheck Check()
@@ -39,9 +39,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     return new HealthCheck(GetType(), HealthCheckResult.Error, string.Format(_localizationService.GetLocalizedString("ProxyCheckResolveIpMessage"), _configService.ProxyHostname), "#proxy-failed-resolve-ip");
                 }
 
-                var request = _cloudRequestBuilder.Create()
-                                                  .Resource("/ping")
-                                                  .Build();
+                var request = _cloudRequestBuilder.Create().Build();
 
                 try
                 {

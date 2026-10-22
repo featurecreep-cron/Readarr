@@ -1,8 +1,8 @@
 using System;
+using System.Net.Http;
 using NLog;
 using NzbDrone.Common.Cloud;
 using NzbDrone.Common.Http;
-using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.HealthCheck.Checks
@@ -17,33 +17,34 @@ namespace NzbDrone.Core.HealthCheck.Checks
             : base(localizationService)
         {
             _client = client;
-            _cloudRequestBuilder = cloudRequestBuilder.Services;
+            _cloudRequestBuilder = cloudRequestBuilder.Releases;
             _logger = logger;
         }
 
         public override HealthCheck Check()
         {
-            var request = _cloudRequestBuilder.Create()
-                                              .Resource("/time")
-                                              .Build();
+            var request = _cloudRequestBuilder.Create().Build();
+            request.Method = HttpMethod.Head;
 
             var response = _client.Execute(request);
-            var result = Json.Deserialize<ServiceTimeResponse>(response.Content);
+            var date = response.Headers.GetSingleValue("Date");
+
+            if (date == null)
+            {
+                return new HealthCheck(GetType());
+            }
+
+            var serverTime = HttpHeader.ParseDateTime(date);
             var systemTime = DateTime.UtcNow;
 
             // +/- more than 1 day
-            if (Math.Abs(result.DateTimeUtc.Subtract(systemTime).TotalDays) >= 1)
+            if (Math.Abs(serverTime.ToUniversalTime().Subtract(systemTime).TotalDays) >= 1)
             {
-                _logger.Error("System time mismatch. SystemTime: {0} Expected Time: {1}. Update system time", systemTime, result.DateTimeUtc);
+                _logger.Error("System time mismatch. SystemTime: {0} Expected Time: {1}. Update system time", systemTime, serverTime.ToUniversalTime());
                 return new HealthCheck(GetType(), HealthCheckResult.Error, _localizationService.GetLocalizedString("SystemTimeCheckMessage"), "#system-time-off");
             }
 
             return new HealthCheck(GetType());
         }
-    }
-
-    public class ServiceTimeResponse
-    {
-        public DateTime DateTimeUtc { get; set; }
     }
 }
