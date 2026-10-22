@@ -226,8 +226,10 @@ def main() -> int:
             proving: list[str] = []
         else:
             print("  running the PR's tests against base source ...")
-            _, failed = run_tests(added, "base")
-            proving = sorted(failed)
+            # A test that didn't pass counts, including one that brought the run down
+            # and left no result. The head run below still requires every one to pass.
+            passed, _ = run_tests(added, "base")
+            proving = sorted(added - passed)
             if not proving:
                 return fail(
                     "no added test fails without the patch",
