@@ -194,7 +194,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                     Title = "Some Book",
                     Editions = new List<Edition>
                     {
-                        new Edition { Title = "Some Edition Title" }
+                        new Edition { Title = "Some Edition Title", Monitored = true }
                     }
                 }
             };

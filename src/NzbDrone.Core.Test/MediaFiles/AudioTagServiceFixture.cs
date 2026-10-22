@@ -336,8 +336,12 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTagServiceFixture
         [Test]
         public void get_metadata_should_not_fail_with_missing_country()
         {
+            GivenFileCopy("nin.mp3");
+
             var file = GivenPopulatedTrackfile(0);
-            var tag = Subject.GetTrackMetadata(file);
+            file.Path = _copiedFile;
+
+            Assert.DoesNotThrow(() => Subject.GetTrackMetadata(file));
         }
 
         [Test]
