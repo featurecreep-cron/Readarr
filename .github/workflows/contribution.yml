@@ -34,9 +34,9 @@ jobs:
         run: python3 .github/scripts/check_contribution.py commits --base "${{ github.event.pull_request.base.sha }}" --head HEAD
 
   pull-request:
-    name: Branch, base and template
+    name: Branch and base
     runs-on: ubuntu-latest
-    # Dependabot and the release promotion write their own bodies.
+    # Dependabot and the release promotion name their own branches.
     if: >-
       github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.head.ref != 'develop'

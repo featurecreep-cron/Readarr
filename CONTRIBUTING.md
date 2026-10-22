@@ -79,7 +79,6 @@ A `New:` or `Fixed:` line in the commit body counts too, for a commit that does 
   - `fix-bug` (Good)
   - `patch` (Bad)
   - `develop` (Bad)
-- Fill out the PR template honestly, every checkbox is an attestation
 
 ### What CI checks
 
@@ -94,7 +93,7 @@ Run these locally before pushing; CI runs the same scripts.
 | Test gate | `python3 .github/scripts/pr_test_gate.py --base origin/develop` | At least one added test fails without the change. A PR that changes no behaviour can be labelled `no-test-gate`, and the reviewer checks that claim |
 | Commits | `python3 .github/scripts/check_contribution.py commits --base origin/develop` | Commit message style, no merge or fixup commits, no AI attribution, \*nix line endings |
 | Localization | `python3 .github/scripts/check_contribution.py localization` | Every translation key exists in `en.json` |
-| Pull request | | Feature branch, targets `develop`, template filled in |
+| Pull request | | Feature branch, targets `develop` |
 
 ## AI tools
 
