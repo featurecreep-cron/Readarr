@@ -155,6 +155,25 @@ jobs:
           filter: ${{ matrix.filter }}
           coverage: ${{ matrix.coverage }}
 
+  # ExceptionVerification fails a test that logs an unexpected warning or error, but only in Debug builds. The
+  # packaged tests above are Release, so this job runs the unit tests once more from a Debug build.
+  unit_test_debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet msbuild -restore src/Readarr.sln -p:Configuration=Debug -p:Platform=Posix -p:RuntimeIdentifiers=linux-x64 -v:q -nologo
+
+      - name: Test
+        run: dotnet test _tests/${{ env.FRAMEWORK }}/Readarr.*.Test.dll --filter "TestCategory!=ManualTest&TestCategory!=MetadataServer&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest" --logger "GitHubActions;summary.includePassedTests=false;summary.includeSkippedTests=false"
+
   unit_test_postgres:
     needs: backend
     runs-on: ubuntu-latest
@@ -244,14 +263,14 @@ jobs:
             --compare-branch="${{ github.event.pull_request.base.sha }}" \
             --exclude 'src/*.Test/*' 'src/NzbDrone.Test.Common/*' 'src/NzbDrone.Test.Dummy/*' 'src/NzbDrone.Core/Datastore/Migration/*' \
             --fail-under=80 \
-            --markdown-report coverage.md
+            --format markdown:coverage.md
           cat coverage.md >> "$GITHUB_STEP_SUMMARY"
 
   # The one check branch protection requires. Matrix job names change with the
   # matrix, so requiring them individually breaks every time a runtime or
   # Postgres version is added or removed.
   build-result:
-    needs: [backend, frontend, unit_test, unit_test_postgres, integration_test, coverage]
+    needs: [backend, frontend, unit_test, unit_test_debug, unit_test_postgres, integration_test, coverage]
     if: always()
     runs-on: ubuntu-latest
     steps:
