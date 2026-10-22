@@ -125,12 +125,12 @@ Done locally on the `modernize` branch, not pushed yet.
   - Add `DisableImplicitFromServicesParameters` as a backstop.
   - Add a regression test that POSTs a real command and saves a setting, and checks both arrive. A reflection test over all actions must keep a visited set: `ProviderBulkResource<T>` constrains its type parameter to itself.
 - [ ] **Explicit self-contained publish**, plus a smoke test that starts the built image.
-- [ ] **Stop depending on Servarr's Azure package feeds.** They host FluentMigrator, SQLite, Mono.Posix and coverlet.
+- [x] **Stop depending on Servarr's Azure package feeds.** They host FluentMigrator, SQLite, Mono.Posix and coverlet.
   - Move to official FluentMigrator 6.2, then `Runner.Core`, 7.2 and 8.0.1 (L `61c23de16`, `8cd45394f`; S `bef298635`, `bb090a7c4`, `210c20f8e`). This drops the SqlClient and SqlServerCe baggage and the pins it needed.
   - Move to official System.Data.SQLite 2.0.2 and sqlite 3.53.4, with the host sqlite3 fallback (L `5e683145e`, `68f07a822`; S `255f1c37c`).
   - Replace Mono.Posix: follow Sonarr's Openur.Mono.Unix move, or use .NET built-ins as the xas fork did.
   - Replace the coverlet nightly with official coverlet.
-- [ ] **Decide the minimum Postgres version.** FluentMigrator 7+ implies 15 (S `5f846ab51`).
+- [x] **Decide the minimum Postgres version.** FluentMigrator 7+ implies 15 (S `5f846ab51`).
 
 ### 1.2 CI you can trust
 
@@ -147,9 +147,9 @@ Mostly done locally.
   - the test gate
   - 80% coverage on changed lines
 - [x] Release, automerge, CodeQL, Scorecard and Dependabot workflows. Actions pinned to commit SHAs.
-- [ ] **Unit tests also run in a Debug build.** `ExceptionVerification`, which fails a test that logs an unexpected warning or error, only runs in Debug. Sonarr's CI builds Release, so it never checks this.
+- [x] **Unit tests also run in a Debug build.** `ExceptionVerification`, which fails a test that logs an unexpected warning or error, only runs in Debug. Sonarr's CI builds Release, so it never checks this.
 - [ ] **A test run that aborts or crashes fails the job.** `dotnet test` already does this; add a check for the summary line as well.
-- [ ] **Live tests against the dead Goodreads API** (about 20) move to an excluded test category, and are deleted once phase 4 replaces their target.
+- [x] **Live tests against the dead Goodreads API** (about 20) move to an excluded test category, and are deleted once phase 4 replaces their target.
 - [ ] **Fix the tests that depend on run order**, and the AudioTag test that fails upstream as well.
 - [ ] **Image smoke tests:**
   - start the image
@@ -157,19 +157,19 @@ Mostly done locally.
   - PUT a setting
   - check auth is enforced
   - migrate a database from the previous release
-- [ ] **Test the gate scripts against real PRs.** `pr_test_gate.py` hasn't run end to end yet.
+- [x] **Test the gate scripts against real PRs.** `pr_test_gate.py` hasn't run end to end yet.
 
 ### 1.3 Safe database migrations
 
-- [ ] **Migration numbering:** continue upstream's sequence, and **detect migrations from other forks** (their `VersionInfo` rows at 041 and above). Then refuse to run, or translate, with a clear message instead of corrupting the database.
-- [ ] **A startup schema check:** compare mapped columns with the live schema, report problems as a health check, and test it in CI. This follows the ricetim fork.
-- [ ] **Migration fixtures** from real Readarr 0.4.19, Faustvii, bookshelf (Goodreads and Hardcover images) and ricetim databases.
+- [x] **Migration numbering:** continue upstream's sequence, and **detect migrations from other forks** (their `VersionInfo` rows at 041 and above). Then refuse to run, or translate, with a clear message instead of corrupting the database.
+- [x] **A startup schema check:** compare mapped columns with the live schema, report problems as a health check, and test it in CI. This follows the ricetim fork.
+- [x] **Migration fixtures** from real Readarr 0.4.19, Faustvii, bookshelf (Goodreads and Hardcover images) and ricetim databases.
 
 ### 1.4 Independence from Servarr services
 
-- [ ] Remove Sentry and analytics.
-- [ ] Point the update check at our GitHub Releases. Servarr's update server isn't ours.
-- [ ] `SystemTimeCheck`: read the `Date` header, because Servarr's `/time` endpoint is gone.
+- [x] Remove Sentry and analytics.
+- [x] Point the update check at our GitHub Releases. Servarr's update server isn't ours.
+- [x] `SystemTimeCheck`: read the `Date` header, because Servarr's `/time` endpoint is gone.
 - [ ] Replace the Goodreads sign-in that went through Servarr's OAuth with something else, or remove it.
 
 ## Phase 2: Security and data safety
@@ -180,26 +180,27 @@ All of these are ports, in Servarr's commit order. Detailed sources are in [port
 - Everything in port-plan section 1 is done.
 - An external security pass finds nothing new in these areas.
 
-- [ ] **Path traversal in the static, backup and log file mappers** (L `27f47e27c` → `fd6f97640`), and path validation that rejects relative path segments (S `b0bc05270`).
-- [ ] **Zip-slip** (L `f61daede7`).
-- [ ] **Forwarded headers trusted only from private networks** (L `6bcead8bf` → `350860e52`). Then **Allowed Hosts** and **Trusted Networks** (the L `45d68ee9a` series), which need health-check reasons (L `4759a2621`).
-- [ ] **Authentication:**
+- [x] **Path traversal in the static, backup and log file mappers** (L `27f47e27c` → `fd6f97640`), and path validation that rejects relative path segments (S `b0bc05270`).
+- [x] **Zip-slip** (L `f61daede7`).
+- [x] **Forwarded headers trusted only from private networks** (L `6bcead8bf` → `350860e52`). Then **Allowed Hosts** and **Trusted Networks** (the L `45d68ee9a` series), which need health-check reasons (L `4759a2621`).
+- [x] **Authentication:**
   - remove Basic auth and migrate existing setups to Forms (L `7cdb4e4b5` + `96e5a4df2`)
   - Forms auth by default (S `14771abc5`)
   - constant-time comparison for the API key and password hashes (S `c340e50b7`)
   - PBKDF2 iterations raised to OWASP's recommendation (S `a83ffea24`)
   - login lockout (S `0bdf2087a`)
   - auth responses never cached, and the login redirect fixed (S `bc7c87def`, `f722e5137`)
-- [ ] **The settings API stops returning secrets** (S `9efa5a069`, after the certificate series).
-- [ ] **The command body is ignored when deserialising a command** (R `14afe5286`).
-- [ ] **Allowlist the `sortKey` parameter** (CVE-2025-50983), and an **SSRF allowlist for the media cover proxy**. The iuliandita fork did both; check whether Sonarr has its own version first.
-- [ ] **Keep secrets out of logs:** RSS URLs, email addresses, the NZBGet token, tracker passkeys (S `0ade5b4c2`, `91aeb5260`, `0ad7a31fb`).
-- [ ] **Windows AppData permissions:** stop granting Everyone the Modify right (S `93b5da55b`). Block more system directories from being used as folders (S `5f5fd1e5e`).
-- [ ] **Backup restore** validates the database and keeps the old one until the restore succeeds (S `460022a72`).
-- [ ] **Data safety (our own work):**
+- [x] **The settings API stops returning secrets** (S `9efa5a069`, after the certificate series).
+- [x] **The command body is ignored when deserialising a command** (R `14afe5286`).
+- [x] **Allowlist the `sortKey` parameter** (CVE-2025-50983), and an **SSRF allowlist for the media cover proxy**. The iuliandita fork did both; check whether Sonarr has its own version first.
+- [x] **Keep secrets out of logs:** RSS URLs, email addresses, the NZBGet token, tracker passkeys (S `0ade5b4c2`, `91aeb5260`, `0ad7a31fb`).
+- [x] **Windows AppData permissions:** stop granting Everyone the Modify right (S `93b5da55b`). Block more system directories from being used as folders (S `5f5fd1e5e`).
+- [x] **Backup restore** validates the database and keeps the old one until the restore succeeds (S `460022a72`).
+- [x] **Data safety (our own work):**
   - **A metadata error is never a deletion.** Distinguish not found, error and removed. Extend upstream's guards (upstream #4108, #4109) to every refresh path.
-  - **Safe replace:** move the old file aside, place the new one, then recycle the old one, restoring it on failure. Recycle bin on by default.
+  - **Safe replace:** move the old file aside, place the new one, then recycle the old one, restoring it on failure.
   - **Never delete outside the destination folder, or another book's file.** A low match threshold has caused exactly this in another fork.
+- [ ] **Recycle bin on by default.** Left out of safe replace; it changes where deleted files go for every existing install.
 
 ## Phase 3: Import and download stability
 
