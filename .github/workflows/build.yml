@@ -22,6 +22,8 @@ concurrency:
 
 permissions:
   contents: read
+  # The FreeBSD runtime packs come from a GitHub Packages feed, which needs a token that can read packages.
+  packages: read
 
 env:
   FRAMEWORK: net10.0
