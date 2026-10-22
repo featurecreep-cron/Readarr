@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -59,7 +60,7 @@ namespace NzbDrone.Host
             services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
-                options.KnownNetworks.Clear();
+                options.KnownIPNetworks.Clear();
                 options.KnownProxies.Clear();
             });
 
@@ -94,6 +95,13 @@ namespace NzbDrone.Host
                 STJson.ApplySerializerSettings(options.JsonSerializerOptions);
             })
             .AddControllersAsServices();
+
+            // Every API resource type is registered in the container, so since .NET 7 an unattributed complex
+            // parameter would be bound from services as an empty object instead of from the request body.
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.DisableImplicitFromServicesParameters = true;
+            });
 
             services.AddSwaggerGen(c =>
             {
