@@ -1,0 +1,120 @@
+name: Contribution Rules
+
+# The Servarr contribution rules (https://wiki.servarr.com/sonarr/contributing
+# and Sonarr's CONTRIBUTING.md), enforced instead of asked for. Every check lives
+# in .github/scripts so a contributor can run the same thing locally before
+# pushing:
+#
+#   python3 .github/scripts/check_contribution.py commits --base origin/develop
+#   python3 .github/scripts/check_contribution.py localization
+#   python3 .github/scripts/pr_test_gate.py --base origin/develop
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize, ready_for_review, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commits:
+    name: Commit messages and line endings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Check commits
+        run: python3 .github/scripts/check_contribution.py commits --base "${{ github.event.pull_request.base.sha }}" --head HEAD
+
+  pull-request:
+    name: Branch, base and template
+    runs-on: ubuntu-latest
+    # Dependabot and the release promotion write their own bodies.
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.ref != 'develop'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Check the pull request
+        run: python3 .github/scripts/check_contribution.py pr --event "$GITHUB_EVENT_PATH"
+
+  localization:
+    name: Localization keys
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Every key exists in en.json
+        run: python3 .github/scripts/check_contribution.py localization
+
+  # Every change to backend source must arrive with a test that fails without
+  # it: at least one newly added test has to fail against the base source, and
+  # all of them have to pass with the patch applied. A test that passes either
+  # way proves nothing. A pull request that genuinely changes no behaviour
+  # takes the `no-test-gate` label, which leaves the reason on the PR.
+  test-gate:
+    name: Test gate
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.ref != 'develop' &&
+      !contains(github.event.pull_request.labels.*.name, 'no-test-gate')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Full history: the gate diffs against the merge base and checks the
+          # base revision of the source out in place.
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Resolve merge base
+        run: |
+          BASE=$(git merge-base "${{ github.event.pull_request.base.sha }}" HEAD)
+          echo "BASE_SHA=$BASE" >> "$GITHUB_ENV"
+          echo "Comparing against $BASE (merge base with ${{ github.base_ref }})"
+
+      - name: Does the test prove the fix?
+        run: python3 .github/scripts/pr_test_gate.py --base "$BASE_SHA" --head HEAD
+
+  test-gate-exempt:
+    name: Test gate exemption
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'no-test-gate')
+    steps:
+      - name: Record the exemption
+        run: |
+          echo "::notice::Test gate skipped via the no-test-gate label."
+          echo "This pull request claims it changes no behaviour."
+          echo "That claim is the reviewer's to check."
+
+  # Branch protection requires THIS job. `test-gate` and `test-gate-exempt` are
+  # mutually exclusive and both skip on Dependabot and promotion PRs, so
+  # requiring either directly would block those PRs forever waiting for a check
+  # that never runs. This one always reports, and fails only when a rule failed.
+  contribution-result:
+    name: Contribution rules
+    needs: [commits, pull-request, localization, test-gate, test-gate-exempt]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the outcome
+        run: |
+          echo '${{ toJSON(needs) }}' | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "::error::A contribution rule failed. See the failing job above."
+            exit 1
+          fi
