@@ -58,27 +58,24 @@ Every item in this roadmap traces back to one of six reviews done on 2026-10-21.
 | 1. Foundation | .NET 10, CI you can trust, no dependence on dead Servarr feeds, safe DB migrations | internal builds |
 | 2. Security and data safety | The security holes Sonarr closed are closed here | internal builds |
 | 3. Import and download stability | The import pipeline stops getting stuck, crashing and losing files | internal builds |
-| 4. Metadata bridge | Readarr works again on a metadata service we control | **v0.5.0, first public release** |
-| 5. Re-architecture design | A reviewed design for the new model, matching and the metadata v2 contract | runs alongside phases 3–4 |
-| 6. Re-architecture | Audiobooks first-class, staged | v0.6 → v0.9 |
-| 7. Metadata v2 | Several providers, Open Library fallback, users' own tokens | with v0.8/0.9 |
-| 8. Features | Users' most-requested features, built on the new model | v0.9+ |
-| 9. Merge-back | Servarr reviews a finished product | v1.0 |
+| 4. Re-architecture design | A reviewed design for the new model, matching and the metadata v2 contract | runs alongside phase 3 |
+| 5. Re-architecture | Audiobooks first-class, staged | internal builds |
+| 6. Metadata service | Readarr works again, on the new model, with a metadata service we control | **v0.5.0, first public release** |
+| 7. Features | Users' most-requested features, built on the new model | v0.6+ |
+| 8. Merge-back | Servarr reviews a finished product | v1.0 |
 
 There are also two continuous tracks: **upstream watch** and **issue triage** (see [the continuous tracks section](#continuous-tracks)).
 
-### Why the re-architecture comes in phases 5–6
+### Why the re-architecture comes before the metadata service
 
-- **Not first.**
-  - Without phases 1–4 there is no working app. Users can't run the redesign and nobody produces the real failure cases the matching rewrite needs as golden tests.
-  - A redesign on an unreliable build, with a CI that can't fail and a metadata source that deletes libraries, would be judged by those failures, not by the design.
-  - The metadata v2 contract can only be designed once we control the metadata service (phase 4).
-- **Not last.**
-  - Most of the requested features depend on the new model: narrator tokens, series pages, separate ebook and audiobook lists, library delivery, Hardcover lists keyed by our own IDs. Building them first means building them twice.
+- **Before the metadata service, and before any release.**
+  - The first release should be on the model Readarr will keep. Releasing the old model first means users build libraries, lists and databases on it, and the redesign then has to migrate all of them.
+  - A metadata service built for the old model would be built twice. Building it straight to the v2 contract means one service, one contract and one migration.
+  - Most requested features depend on the new model: narrator tokens, series pages, separate ebook and audiobook lists, library delivery, Hardcover lists keyed by our own IDs.
   - The audiobook data-loss bug, where an ebook import deletes the audiobook and vice versa, can only be fixed properly in the model.
-- **Design starts early.** Phase 5 runs alongside phases 3 and 4. The first two stages of phase 6 are small and safe enough to start as soon as phase 3 is done.
-  - 6.1 is a behaviour-preserving refactor.
-  - 6.2 fixes the data-loss bug.
+- **Not before phases 1–3.** A redesign on an unreliable build, with a CI that can't fail and an import pipeline that loses files, would be judged by those failures, not by the design.
+- **What it costs:** no public release until phase 6, and no real-world failure cases from users while phase 5 is built. The golden test corpus (phase 4) and the fork database fixtures (1.3) stand in for them; the recorded metadata stub stands in for the service.
+- **Design starts early.** Phase 4 runs alongside phase 3. Stages 5.1 and 5.2 are small and safe enough to start as soon as phase 3 is done.
 
 ## Phase 0: Project setup
 
@@ -149,7 +146,7 @@ Mostly done locally.
 - [x] Release, automerge, CodeQL, Scorecard and Dependabot workflows. Actions pinned to commit SHAs.
 - [x] **Unit tests also run in a Debug build.** `ExceptionVerification`, which fails a test that logs an unexpected warning or error, only runs in Debug. Sonarr's CI builds Release, so it never checks this.
 - [ ] **A test run that aborts or crashes fails the job.** `dotnet test` already does this; add a check for the summary line as well.
-- [x] **Live tests against the dead Goodreads API** (about 20) move to an excluded test category, and are deleted once phase 4 replaces their target.
+- [x] **Live tests against the dead Goodreads API** (about 20) move to an excluded test category, and are deleted once phase 6 replaces their target.
 - [ ] **Fix the tests that depend on run order**, and the AudioTag test that fails upstream as well.
 - [ ] **Image smoke tests:**
   - start the image
@@ -276,54 +273,9 @@ The open-issues review lists 30. The ones that won't be absorbed by later phases
 - [ ] UI text and label fixes (upstream #2584, #1204, #1377, #1378, #425, #1732).
 - [ ] Settings bugs (upstream #2238, #1232, #2367, #3101, #1404, #1509).
 
-## Phase 4: Metadata bridge → v0.5.0
+## Phase 4: Re-architecture design
 
-**Exit criteria:**
-- Adding an author, a book, a series and an import list works against our metadata service, on a fresh database and on a migrated one.
-- A metadata outage shows up as a health check and never deletes anything.
-- The image is published.
-
-### 4.1 Our metadata service
-
-**Decision: fork blampe/rreading-glasses to featurecreep-cron/rreading-glasses.**
-
-Why fork rather than the alternatives:
-- **Depending on it as-is** repeats the single-point-of-failure that killed Readarr. Its maintainer is quiet, its Goodreads backend returns 401, and its Hardcover backend is overloaded.
-- **Writing our own service** would spend months re-solving problems it already solves: request coalescing, asynchronous author loading, batching, and the API quirks Readarr depends on.
-- **Putting provider clients inside Readarr** doesn't fit merge-back, because every Servarr app talks to a Servarr-hosted proxy. It also puts Hardcover's per-user rate limits and yearly token expiry in front of every user.
-
-Work in the fork:
-- [ ] **Cherry-pick the open community fix PRs from upstream:** #585, #582/#583, #601, #557. Review #596–598 against our own retry and filters.
-- [ ] **Reliability fixes:**
-  - the counter race that left a flag stuck at 1 and caused a hang
-  - a panicking refresh still completes
-  - retry 429/5xx with backoff, honouring `Retry-After`
-  - never cache an empty author
-- [ ] **Bound the crawl** (upstream #580) and **purge the database** (upstream #554).
-- [ ] **Respect Hardcover's limits:** 60 requests per minute, a burst of 10 and 5,000 a day on the free tier, and searches sent separately.
-- [ ] **Publish the fork's image.** Readarr defaults to the hosted instance once one exists; until then, self-hosting is documented.
-- [ ] **Ask Hardcover in writing** about hosting a shared instance, caching and redistribution.
-
-### 4.2 Readarr side
-
-- [ ] **Search goes through the metadata service**, not goodreads.com's `auto_complete`. Remove the dead `api.bookinfo.club` default.
-- [ ] **A visible metadata setting** (not a hidden page) with a health check and a **status display** (upstream #3050, 15 reactions).
-- [ ] **Widen `ForeignId` to `long`.**
-- [ ] **Show a loading state for authors** while the service is still crawling them. Today the partial author the service returns first counts as "new books".
-- [ ] **Explain why a book is hidden:** language, series or popularity filter.
-- [ ] **Search debounce, a rate limiter and short-lived caches.** Bookshelf turned caching off and got 429s.
-- [ ] **A memo of remote searches with an expiry**, so the same failed lookup isn't repeated. Bookshelf's version has no expiry, and its migration number collides with ours.
-
-### 4.3 Shipping v0.5.0
-
-- [ ] An LSIO-style image (PUID/PGID) for amd64 and arm64.
-- [ ] Migration from Readarr 0.4.19, Faustvii and bookshelf databases, using the fixtures from 1.3.
-- [ ] Release notes generated by `next_version.py`.
-- [ ] A migration guide.
-
-## Phase 5: Re-architecture design
-
-Runs alongside phases 3–4.
+Runs alongside phase 3.
 
 **Exit criteria:** design documents (ADRs) accepted for each item below, and a golden test corpus checked in.
 
@@ -333,7 +285,7 @@ The requirements come from four sources, and every requirement cites them:
 - a metadata-profile spec (ordered languages, separate ebook and audio formats, edition policy, title policy, series and contributor roles)
 - notes on Hardcover's schema: language and format live on editions, and each book has a default edition per format
 
-### 5.1 The domain model
+### 4.1 The domain model
 
 ```text
 Contributor ──< Credit (role: author, narrator, translator, editor, ...) >── Edition
@@ -366,7 +318,7 @@ Decisions to record:
 - **Editions are stored so they scale:** large works aren't fully stored or monitored, and writes are batched. (upstream #2101, #2783)
 - **IDs:** stable internal IDs, plus external IDs per provider namespace. Never store one provider's IDs in another provider's columns.
 
-### 5.2 The matching pipeline
+### 4.2 The matching pipeline
 
 Evidence, strongest first:
 1. The grab you made. Identify against the book the download was grabbed for; don't re-match it. (upstream #2723, #3131; iuliandita and ricetim)
@@ -384,7 +336,7 @@ Rules:
 - **Inspect a release before downloading it.** Refuse archive-only, mixed-media and bundle releases when they don't match, record the reason, and blocklist the release.
 - **A golden test corpus** built from real logged cases (including one fork's 19 wrong grabs out of 27), so weights get tuned against evidence.
 
-### 5.3 The metadata v2 contract
+### 4.3 The metadata v2 contract
 
 Designed together with the fork:
 - Full edition lists, without de-duplicating audio editions.
@@ -397,26 +349,66 @@ Designed together with the fork:
 
 The v1 API stays available for older clients.
 
-### 5.4 Migration, API and UI
+### 4.4 Migration, API and UI
 
 - **Data migration** from the current model, including **merging an ebook instance and an audiobook instance into one**. This is the official workaround upstream gave users, so many have exactly that setup.
 - **API:** v1 keeps working through a compatibility layer, for Prowlarr and the other tools that call it, and the new model gets a v2.
 - **UI:** a separate state for each media type throughout: book page, author page, wanted, calendar, manual import.
 
-## Phase 6: Re-architecture
+## Phase 5: Re-architecture
 
-Staged, and each stage ships on its own.
+Staged. Each stage merges to develop on its own, behind its tests, and none is released by itself. Releases start with phase 6.
 
-| Stage | Content | Release |
-|---|---|---|
-| 6.1 | **One accessor for the selected edition.** Replace the ~16 `Single(x => x.Monitored)` sites. Behaviour stays the same; this makes every later stage possible. | 0.5.x |
-| 6.2 | **Media type as a dimension.** `MediaType` on quality, edition and file; separate cutoffs for ebooks and audiobooks; **an import replaces only files of the same type**, which fixes the bug where an audiobook import deleted the ebook. | **0.6** |
-| 6.3 | **Contributors with roles, and audiobook fields:** narrator, ASIN, runtime, abridged. The metadata v2 endpoints, using Hardcover plus Audnexus. Naming tokens `{Narrator}`, `{ASIN}`, `{ISBN}`, `{Runtime}`, `{Medium}`. (upstream #2619, #1943, #1910) | 0.7 |
-| 6.4 | **A want per media type**, each with its own profile, root folder and naming; **indexers and download clients routed by media type** (categories per type); UI throughout; the migration that **merges two instances**. | **0.8** |
-| 6.5 | **The new matching pipeline** (5.2), including inspecting releases before grabbing and the golden tests. | 0.9 |
-| 6.6 | **First-class series, author aliases and merging, languages per edition, scalable editions.** | 0.9 |
+| Stage | Content |
+|---|---|
+| 5.1 | **One accessor for the selected edition.** Replace the ~16 `Single(x => x.Monitored)` sites. Behaviour stays the same; this makes every later stage possible. |
+| 5.2 | **Media type as a dimension.** `MediaType` on quality, edition and file; separate cutoffs for ebooks and audiobooks; **an import replaces only files of the same type**, which fixes the bug where an audiobook import deleted the ebook. |
+| 5.3 | **Contributors with roles, and audiobook fields:** narrator, ASIN, runtime, abridged. Fields from the metadata v2 contract (4.3), tested against the recorded stub until phase 6 serves them. Naming tokens `{Narrator}`, `{ASIN}`, `{ISBN}`, `{Runtime}`, `{Medium}`. (upstream #2619, #1943, #1910) |
+| 5.4 | **A want per media type**, each with its own profile, root folder and naming; **indexers and download clients routed by media type** (categories per type); UI throughout; the migration that **merges two instances**. |
+| 5.5 | **The new matching pipeline** (4.2), including inspecting releases before grabbing and the golden tests. |
+| 5.6 | **First-class series, author aliases and merging, languages per edition, scalable editions.** |
 
-## Phase 7: Metadata v2
+## Phase 6: Metadata service → v0.5.0
+
+The service is built straight to the metadata v2 contract (4.3) for the new model. There is no bridge for the old one.
+
+**Exit criteria:**
+- Adding an author, a book, a series and an import list works against our metadata service, on a fresh database and on a migrated one.
+- A metadata outage shows up as a health check and never deletes anything.
+- The image is published.
+
+### 6.1 Our metadata service
+
+**Decision: fork blampe/rreading-glasses to featurecreep-cron/rreading-glasses.**
+
+Why fork rather than the alternatives:
+- **Depending on it as-is** repeats the single-point-of-failure that killed Readarr. Its maintainer is quiet, its Goodreads backend returns 401, and its Hardcover backend is overloaded.
+- **Writing our own service** would spend months re-solving problems it already solves: request coalescing, asynchronous author loading, batching, and the API quirks Readarr depends on.
+- **Putting provider clients inside Readarr** doesn't fit merge-back, because every Servarr app talks to a Servarr-hosted proxy. It also puts Hardcover's per-user rate limits and yearly token expiry in front of every user.
+
+Work in the fork:
+- [ ] **Cherry-pick the open community fix PRs from upstream:** #585, #582/#583, #601, #557. Review #596–598 against our own retry and filters.
+- [ ] **Reliability fixes:**
+  - the counter race that left a flag stuck at 1 and caused a hang
+  - a panicking refresh still completes
+  - retry 429/5xx with backoff, honouring `Retry-After`
+  - never cache an empty author
+- [ ] **Bound the crawl** (upstream #580) and **purge the database** (upstream #554).
+- [ ] **Respect Hardcover's limits:** 60 requests per minute, a burst of 10 and 5,000 a day on the free tier, and searches sent separately.
+- [ ] **Publish the fork's image.** Readarr defaults to the hosted instance once one exists; until then, self-hosting is documented.
+- [ ] **Ask Hardcover in writing** about hosting a shared instance, caching and redistribution.
+
+### 6.2 Readarr side
+
+- [ ] **Search goes through the metadata service**, not goodreads.com's `auto_complete`. Remove the dead `api.bookinfo.club` default.
+- [ ] **A visible metadata setting** (not a hidden page) with a health check and a **status display** (upstream #3050, 15 reactions).
+- [ ] **IDs as the 4.1 design decides:** stable internal IDs, and external IDs per provider, replacing the 32-bit `ForeignId`.
+- [ ] **Show a loading state for authors** while the service is still crawling them. Today the partial author the service returns first counts as "new books".
+- [ ] **Explain why a book is hidden:** language, series or popularity filter.
+- [ ] **Search debounce, a rate limiter and short-lived caches.** Bookshelf turned caching off and got 429s.
+- [ ] **A memo of remote searches with an expiry**, so the same failed lookup isn't repeated. Bookshelf's version has no expiry, and its migration number collides with ours.
+
+### 6.3 More providers
 
 - [ ] **Open Library as a fallback.** Keyless, CC0, with bulk dumps available. The aleksclark fork showed it can implement every provider interface.
 - [ ] **Users can supply their own Hardcover token**, to get past the shared limits.
@@ -424,7 +416,15 @@ Staged, and each stage ships on its own.
 - [ ] **Wikidata for linking IDs across sources.** Google Books as optional enrichment.
 - [ ] **A primary and a secondary metadata URL, with failover** (iuliandita's design).
 
-## Phase 8: Features on the new model
+### 6.4 Shipping v0.5.0
+
+- [ ] An LSIO-style image (PUID/PGID) for amd64 and arm64.
+- [ ] Migration from Readarr 0.4.19, Faustvii, ricetim and bookshelf databases, using the fixtures from 1.3.
+- [ ] Release notes generated by `next_version.py`, plus a hand-written security section for the phase 2 ports that kept upstream's unprefixed subjects.
+- [ ] Re-enable the Release workflow, which is disabled until then.
+- [ ] A migration guide.
+
+## Phase 7: Features on the new model
 
 In rough order of demand:
 - [ ] **Write metadata into files without Calibre:** EPUB series, IDs, title, cover, language; audio tags and narrator, with sanitised tags; the M4B cover written last.
@@ -436,7 +436,7 @@ In rough order of demand:
 - [ ] Optional merging of multi-part audiobooks into one chaptered M4B (jnaujok and Chaptarr do this). Booksonic sidecar files (upstream #1623).
 - [ ] Monitoring settings that make sense to users.
 
-## Phase 9: Merge-back → v1.0
+## Phase 8: Merge-back → v1.0
 
 - [ ] **Sonarr parity checks:** run the upstream-watch backlog down to zero for the shared code.
 - [ ] **A review pass of the history:** small, reviewable commits, each with tests.
