@@ -286,10 +286,43 @@
     var copyDiv = document.getElementById("copy");
     copyDiv.classList.remove("hidden");
 
-    if (window.location.search.indexOf("loginFailed=true") > -1) {
+    var searchParams = new URLSearchParams(window.location.search);
+
+    if (searchParams.get("loginFailed") === "true") {
       var loginFailedDiv = document.getElementById("login-failed");
+      var lockoutUntil = parseInt(searchParams.get("lockoutUntil"), 10);
+      var lockoutTimer = null;
 
       loginFailedDiv.classList.remove("hidden");
+
+      if (!isNaN(lockoutUntil) && lockoutUntil > Date.now()) {
+        var submitButton = document.querySelector('button[type="submit"]');
+
+        submitButton.disabled = true;
+
+        var updateLockout = function () {
+          var remainingSeconds = Math.ceil((lockoutUntil - Date.now()) / 1000);
+
+          if (remainingSeconds <= 0) {
+            clearInterval(lockoutTimer);
+            submitButton.disabled = false;
+            loginFailedDiv.classList.add("hidden");
+
+            return;
+          }
+
+          var minutes = Math.floor(remainingSeconds / 60);
+          var seconds = remainingSeconds % 60;
+
+          loginFailedDiv.textContent =
+            "Too many failed sign in attempts. Please try again in " +
+            minutes + ":" + (seconds < 10 ? "0" : "") + seconds + ".";
+        };
+
+        updateLockout();
+
+        lockoutTimer = setInterval(updateLockout, 1000);
+      }
     }
   </script>
 </html>
